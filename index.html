@@ -2,10 +2,15 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
 <meta name="theme-color" content="#1B4590">
 <title>NEPO Security · Sistema de Georreferenciación</title>
-<link rel="icon" href="logo.jpg">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NEPO"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--blue:#1B4590;--blue-d:#12306a;--gold:#B8984A;--ink:#4B4B48;--bg:#F6F7F3;--line:#dfe0d9;--ok:#2e7d4f;--bad:#b3261e}
 *{box-sizing:border-box}
@@ -63,6 +68,71 @@ body.lg{min-height:100vh;background:repeating-linear-gradient(90deg,#ffffff0a 0 
 .bar{height:12px;background:#e8e9e3;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px}
 .tip{background:#fbf7ec;border:1px solid #eadfb9;border-radius:10px;padding:.7rem 1rem;font-size:.9rem;margin-bottom:1rem}.tip summary{font-size:.95rem}.tip ol{margin:.5rem 0 0;padding-left:1.2rem}
 .hint{font-size:.82rem;opacity:.8;margin:.2rem 0 .6rem}
+
+/* ===== Acabado profesional y diseño responsivo ===== */
+:root{--r:12px;--sh:0 1px 2px #1b45900d,0 6px 18px #1b459014;--sh2:0 10px 30px #1b459029}
+html{-webkit-text-size-adjust:100%}
+body{font-size:15px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h2{font-size:1.25rem;letter-spacing:-.01em}h3{font-size:1.05rem}
+header{position:sticky;top:0;z-index:7;padding:.55rem 1rem;padding-top:calc(.55rem + env(safe-area-inset-top))}
+header img{height:42px}
+.who{max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{padding:1.5rem 1rem 2rem}
+.card{border-radius:var(--r);box-shadow:var(--sh);padding:1.1rem 1.25rem;border-color:#e6e7e0}
+button,.btn{min-height:44px;border-radius:10px;box-shadow:0 1px 2px #0002;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;transition:background .15s,box-shadow .15s,transform .08s}
+button:active,.btn:active{transform:scale(.98)}button.alt{box-shadow:none}button.sm{min-height:36px}
+button.alt:hover{background:#eef2f9}
+input,select,textarea{min-height:44px;border-radius:10px;font-size:16px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+textarea{min-height:0}input[type=checkbox]{min-height:auto;width:auto}
+label{font-size:.8rem;letter-spacing:.02em}
+.tabs{background:#e9ebe4;padding:4px;border-radius:12px;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:1;white-space:nowrap;background:transparent;border:0;box-shadow:none;color:var(--ink);min-height:40px}
+.tabs button:hover{background:#ffffff99}
+.tabs button.on,.tabs button.on:hover{background:#fff;color:var(--blue);box-shadow:var(--sh)}
+.rec{border-radius:var(--r);box-shadow:var(--sh);transition:box-shadow .2s,transform .2s}
+.rec:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+.rec img{height:auto;aspect-ratio:4/3}.rec div{line-height:1.35}
+.grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+tr:hover td{background:#fafaf7}
+.stat{border-radius:var(--r);box-shadow:var(--sh)}.tag{font-weight:600}
+.toast{bottom:calc(1rem + env(safe-area-inset-bottom));max-width:calc(100% - 2rem);text-align:center;box-shadow:var(--sh2)}
+.modal .box{border-radius:16px}.modal img{max-height:55vh;object-fit:contain;background:#111}
+.login{width:calc(100% - 1.5rem);max-width:420px}
+.foot{text-align:center;font-size:.75rem;opacity:.6;margin-top:1.5rem}
+@media(min-width:701px){main{padding:1.5rem}}
+@media(max-width:700px){
+ body{font-size:14.5px;--nav:4.4rem}
+ main{padding:.9rem .75rem 6.5rem}.card{padding:.9rem}
+ header{gap:.5rem}header img{height:36px}.brand b{font-size:.62rem;letter-spacing:.22em}.brand span{font-size:.68rem;letter-spacing:.08em}
+ .who{display:none}
+ .tabs{position:fixed;left:0;right:0;bottom:0;margin:0;border-radius:0;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #0001;z-index:8}
+ .tabs button{font-size:.82rem}
+ .toast{bottom:calc(5.2rem + env(safe-area-inset-bottom))}
+ body:not(.adm) .toast{bottom:calc(1rem + env(safe-area-inset-bottom))}
+ body:not(.adm){--nav:0px}
+ .grid{grid-template-columns:repeat(2,1fr);gap:.6rem}.rec div{font-size:.75rem;padding:.4rem .5rem}
+ .stats{grid-template-columns:repeat(2,1fr)}
+ .row{gap:.5rem}.row>*{min-width:0;flex:1 1 calc(50% - .5rem)}
+ .cta{position:sticky;bottom:var(--nav);background:linear-gradient(#f6f7f300,var(--bg) 35%);padding:1rem 0 calc(.6rem + env(safe-area-inset-bottom));z-index:3}
+ .cta>*{flex:1 1 100%}
+ video,.shot{max-height:52vh}
+ #ut tr:first-child{display:none}
+ #ut tr{display:block;border:1px solid var(--line);border-radius:10px;padding:.5rem .7rem;margin-bottom:.6rem}
+ #ut td{display:flex;justify-content:space-between;align-items:center;gap:1rem;border:0;padding:.25rem 0;text-align:right}
+ #ut td[data-l]::before{content:attr(data-l);font-weight:600;color:var(--blue);text-align:left}
+ .modal{padding:0;align-items:flex-end}
+ .modal .box{border-radius:16px 16px 0 0;max-height:94vh;padding:.9rem .9rem calc(.9rem + env(safe-area-inset-bottom))}
+ .modal tr{display:block;padding:.35rem 0;border-bottom:1px solid var(--line)}.modal th,.modal td{display:block;border:0;padding:.05rem 0}
+ .login{margin-top:3vh}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.net{font-size:.72rem;font-weight:600;padding:.15rem .6rem;border-radius:99px}
+@media(max-width:700px){header .inst{display:none!important}}
+.banner{padding:.8rem 1rem;border-radius:12px;background:#eef2f9;color:var(--blue);font-size:1.05rem;line-height:1.35;margin:.6rem 0;text-align:center}
+.banner small{display:block;opacity:.8;font-size:.78rem;margin-top:.3rem}.banner.ok{background:#e6f4ec;color:#1f6b3f}.banner.bad{background:#fbe9e7;color:var(--bad)}
+#snap{font-size:1.1rem;min-height:56px}
 </style>
 </head>
 <body>
@@ -71,7 +141,7 @@ body.lg{min-height:100vh;background:repeating-linear-gradient(90deg,#ffffff0a 0 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,orderBy,limit,getDocs,updateDoc,where,writeBatch,increment,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,orderBy,limit,getDocs,updateDoc,deleteDoc,where,writeBatch,increment,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ====== 1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO FIREBASE ====== */
 const firebaseConfig = {
@@ -90,7 +160,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = d => d ? d.toLocaleString("es-CL", {dateStyle:"short", timeStyle:"medium"}).replace(/[\u202f\u00a0]/g, " ") : "";
 const toast = m => { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); };
-let me = null, stream = null, watchId = null, pos = null, records = [];
+let me = null, stream = null, watchId = null, pos = null, posT = 0, records = [];
 
 /* ---------- Sesión ---------- */
 onAuthStateChanged(auth, async u => {
@@ -99,9 +169,13 @@ onAuthStateChanged(auth, async u => {
   try {
     const s = await getDoc(doc(db, "users", u.uid));
     if (!s.exists() || !s.data().active) { await signOut(auth); return viewLogin("Usuario no autorizado o desactivado."); }
-    me = {uid: u.uid, ...s.data()};
-    shell();
-  } catch (e) { await signOut(auth); viewLogin("No se pudo validar tu perfil."); }
+    me = {uid: u.uid, ...s.data()}; localStorage.setItem("nepo-me", JSON.stringify(me));
+    shell(); syncQueue();
+  } catch (e) {
+    let c = null; try { c = JSON.parse(localStorage.getItem("nepo-me")); } catch {}
+    if (c && c.uid === u.uid && e.code !== "permission-denied") { me = c; shell(); toast("Modo sin conexión"); }
+    else { await signOut(auth); viewLogin("No se pudo validar tu perfil."); }
+  }
 });
 
 function viewLogin(msg = "") {
@@ -109,10 +183,10 @@ function viewLogin(msg = "") {
   $("#app").innerHTML = `<div class="card login"><img src="logo.jpg" alt="NEPO Security" style="display:block;margin:0 auto">
   <h2 style="text-align:center;margin:0">Sistema de Georreferenciación</h2>
   <p style="text-align:center;margin:.2rem 0 0;font-size:.9rem">Control de presencia en terreno</p>
-  <div class="chips"><span>📍 GPS verificado</span><span>📷 Foto en vivo</span><span>🔒 Registro inalterable</span></div>
+  <div class="chips"><span>✓ GPS verificado</span><span>✓ Foto en vivo</span><span>✓ Registro inalterable</span></div>
   <label>Correo</label><input id="em" type="email" autocomplete="username" placeholder="nombre@empresa.cl">
-  <label>Contraseña</label><div class="pw"><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••"><button type="button" id="eye" aria-label="Mostrar u ocultar contraseña">👁</button></div>
-  <p class="err" id="err">${esc(msg)}</p><button id="go" style="width:100%">Ingresar</button>
+  <label>Contraseña</label><div class="pw"><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••"><button type="button" id="eye" aria-label="Mostrar u ocultar contraseña">Ver</button></div>
+  <p class="err" id="err">${esc(msg)}</p><button id="go" style="width:100%">Ingresar</button><button type="button" class="alt inst hide" style="width:100%;margin-top:.6rem">Instalar app en tu celular</button>
   <p class="hint" style="text-align:center;margin-top:1rem">🔒 Conexión cifrada · ¿Olvidaste tu clave? Contacta a tu administrador.</p></div>`;
   const go = async () => {
     $("#err").textContent = ""; $("#go").disabled = true; $("#go").textContent = "Ingresando…";
@@ -120,18 +194,21 @@ function viewLogin(msg = "") {
     catch { $("#err").textContent = "Correo o contraseña incorrectos."; $("#go").disabled = false; $("#go").textContent = "Ingresar"; }
   };
   $("#go").onclick = go; $("#pw").onkeydown = e => { if (e.key === "Enter") go(); };
-  $("#eye").onclick = () => { const i = $("#pw"); i.type = i.type === "password" ? "text" : "password"; };
+  showInstall(); $("#eye").onclick = () => { const i = $("#pw"); i.type = i.type === "password" ? "text" : "password"; $("#eye").textContent = i.type === "password" ? "Ver" : "Ocultar"; };
 }
 
 function shell() {
-  document.body.className = "";
   const admin = me.role === "admin";
-  $("#app").innerHTML = `<header><img src="logo.jpg" alt=""><div class="brand"><b>NEPO SECURITY</b><span>SISTEMA DE GEORREFERENCIACIÓN</span></div><span class="sp"></span>
-    <small>${esc(me.name)} · ${admin ? "Administrador" : "Guardia"}</small><button class="alt sm" id="out">Salir</button></header>
-    <main>${admin ? `<div class="tabs"><button data-t="rec" class="on">📁 Registros</button><button data-t="usr">👥 Usuarios e instalaciones</button><button data-t="mark">📷 Marcar</button></div>` : ""}<div id="v"></div></main>`;
-  $("#out").onclick = () => signOut(auth);
+  document.body.className = admin ? "adm" : "";
+  $("#app").innerHTML = `<header><img src="logo.jpg" alt=""><div class="brand"><b>NEPO SECURITY</b><span>SISTEMA DE GEORREFERENCIACIÓN</span></div><span class="sp"></span><span id="net" class="net"></span>
+    <small class="who">${esc(me.name)} · ${admin ? "Administrador" : "Guardia"}</small><button class="alt sm inst hide">Instalar app</button><button class="alt sm" id="out">Salir</button></header>
+    <main>${admin ? `<div class="tabs"><button data-t="rec" class="on">Registros</button><button data-t="map">Mapas</button><button data-t="usr">Usuarios</button><button data-t="mark">Marcar</button></div>` : ""}<div id="v"></div><footer class="foot">© ${new Date().getFullYear()} NEPO Security · Sistema de Georreferenciación<br><button class="alt sm inst hide" style="margin-top:.6rem">Instalar app en este dispositivo</button></footer></main>`;
+  $("#out").onclick = async () => {
+    if ((await qAll()).some(i => i.meta.uid === me.uid) && !confirm("Tienes fotos pendientes de subir. Si sales, se subirán cuando vuelvas a ingresar con conexión. ¿Salir igual?")) return;
+    signOut(auth); };
+  netBadge(); showInstall();
   const show = t => { stopMedia(); document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
-    ({rec: viewRecords, usr: viewUsers, mark: viewMark})[t](); };
+    ({rec: viewRecords, map: viewMaps, usr: viewUsers, mark: viewMark})[t](); };
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => show(b.dataset.t));
   show(admin ? "rec" : "mark");
 }
@@ -143,27 +220,34 @@ function stopMedia() {
 }
 
 async function viewMark() {
-  const sites = await loadSites();
-  $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2><p class="hint">Elige tu instalación y mantén el celular quieto hasta que el GPS se ponga en verde.</p>
+  const sites = await loadSites(); gmP = null; cps = []; userPicked = false;
+  $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2><p class="hint">Apunta al lugar y toca el botón. Si no hay internet, la foto se guarda y se sube sola.</p>
     <video id="cam" autoplay playsinline muted></video><img id="shot" class="shot hide" alt="">
     <div class="gps"><span class="dot" id="gd"></span><span id="gt">Buscando ubicación GPS…</span></div>
     <label>Instalación</label><select id="site"><option value="">Elige la instalación…</option>${sites.map(x => `<option>${esc(x.name)}</option>`).join("")}</select>
-    <label>Observación (opcional)</label><textarea id="note" rows="2" maxlength="300"></textarea>
+    <div id="cps" class="hide"><div id="cpd" class="banner"></div><label>Punto de control</label><select id="cp"></select>
+    <details id="mapd" style="margin:.6rem 0"><summary>Ver mapa</summary><div id="gmap" style="height:230px;border-radius:10px;margin-top:.4rem"></div></details></div>
+    <details style="margin:.6rem 0"><summary>Agregar observación (opcional)</summary><textarea id="note" rows="2" maxlength="300" style="margin-top:.4rem"></textarea></details>
     <p class="err" id="merr"></p>
-    <div class="row"><button id="snap" disabled>Tomar foto y registrar</button><button id="again" class="alt hide">Nuevo registro</button></div></div>
-    <h3>Mis últimos registros</h3><div class="grid" id="mine"></div>`;
+    <div class="row cta"><button id="snap" disabled>Tomar foto y registrar</button><button id="again" class="alt hide">Nuevo registro</button></div></div>
+    <div id="queue"></div><h3>Mis últimos registros</h3><div class="grid" id="mine"></div>`;
   try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment", width: {ideal: 1280}}, audio: false}); $("#cam").srcObject = stream; }
   catch { $("#merr").textContent = "Debes permitir el acceso a la cámara (requiere conexión HTTPS)."; }
   if (!navigator.geolocation) { $("#gt").textContent = "Este dispositivo no tiene GPS."; }
   else watchId = navigator.geolocation.watchPosition(p => {
-    pos = p.coords; const good = pos.accuracy <= 50;
+    pos = p.coords; posT = p.timestamp || Date.now(); const good = pos.accuracy <= 50;
     $("#gd").className = "dot " + (good ? "ok" : ""); 
-    $("#gt").textContent = `GPS ±${Math.round(pos.accuracy)} m · ${pos.latitude.toFixed(5)}, ${pos.longitude.toFixed(5)}`;
-    $("#snap").disabled = !stream;
-  }, () => { $("#gd").className = "dot bad"; $("#gt").textContent = "Activa el permiso de ubicación para registrar."; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
-  $("#snap").onclick = capture;
+    $("#gt").textContent = good ? `GPS listo · precisión ±${Math.round(pos.accuracy)} m` : `Mejorando precisión del GPS… (±${Math.round(pos.accuracy)} m)`;
+    $("#snap").disabled = !stream; paintCps();
+  }, () => { $("#gd").className = "dot bad"; $("#gt").textContent = pos ? `Sin señal GPS reciente (última ubicación hace ${Math.round((Date.now() - posT) / 1000)} s)` : "Activa el permiso de ubicación y sal a un lugar abierto."; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
+  $("#snap").onclick = capture; $("#site").onchange = e => { localStorage.setItem("nepo-site", e.target.value); userPicked = false; loadCps(e.target.value); };
+  $("#cp").onchange = () => { userPicked = true; paintCps(); };
+  $("#mapd").ontoggle = () => { fitMap = true; gm?.invalidateSize(); paintCps(); };
+  const last = localStorage.getItem("nepo-site"), pick = sites.find(x => x.name === last) ? last : sites.length === 1 ? sites[0].name : "";
+  if (pick) { $("#site").value = pick; loadCps(pick); }
   $("#again").onclick = viewMark;
-  loadMine();
+  if (navigator.onLine) sites.forEach(x => fetchCps(x.name));
+  paintQueue(); loadMine();
 }
 
 async function reverse(lat, lon) {
@@ -174,18 +258,76 @@ async function reverse(lat, lon) {
   } catch { return ""; }
 }
 
+/* ---------- Cola local (IndexedDB) ---------- */
+const idb = () => new Promise((ok, no) => { const r = indexedDB.open("nepo-q", 1); r.onupgradeneeded = () => r.result.createObjectStore("q", {keyPath: "id"}); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+const qTx = async (mode, fn) => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction("q", mode), r = fn(t.objectStore("q")); t.oncomplete = () => ok(r?.result); t.onerror = () => no(t.error); }); };
+const qPut = it => qTx("readwrite", s => s.put(it)), qDel = id => qTx("readwrite", s => s.delete(id)), qAll = () => qTx("readonly", s => s.getAll()).then(x => x || []);
+const netBadge = () => { const e = $("#net"); if (!e) return; const on = navigator.onLine; e.textContent = on ? "En línea" : "Sin conexión"; e.style.background = on ? "#ffffff26" : "var(--gold)"; e.style.color = on ? "#fff" : "#222"; };
+
+async function cached(key, fn) {
+  if (navigator.onLine) { try { const v = await Promise.race([fn(), new Promise((_, no) => setTimeout(no, 7000))]); localStorage.setItem(key, JSON.stringify(v)); return v; } catch {} }
+  try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+}
+const fetchCps = site => cached("nepo-cps-" + site, async () => (await getDocs(query(collection(db, "checkpoints"), where("site", "==", site)))).docs.map(d => ({id: d.id, ...d.data()})));
+
+let syncing = false;
+async function syncQueue() {
+  if (syncing || !me || !navigator.onLine) return paintQueue();
+  syncing = true;
+  try { for (const it of await qAll()) {
+    if (it.meta.uid !== me.uid) continue;
+    it.status = "subiendo"; await qPut(it); paintQueue();
+    try {
+      const m = it.meta, addr = m.address || await reverse(m.lat, m.lng);
+      let verifOk = null, verifDist = null;
+      if (m.cpId) { try { const c = (await getDoc(doc(db, "checkpoints", m.cpId))).data();
+        if (c) { verifDist = Math.round(hav(m.lat, m.lng, c.lat, c.lng)); verifOk = verifDist - m.acc <= c.radius; } } catch {} }
+      const b = writeBatch(db);
+      b.set(doc(db, "checkins", it.id), {...m, address: addr, thumb: it.thumb, hash: it.hash, size: it.size, diferido: Date.now() - it.queuedAt > 60000, verifOk, verifDist, createdAt: serverTimestamp()});
+      b.set(doc(db, "stats", "usage"), {bytes: increment(it.size), count: increment(1)}, {merge: true});
+      b.set(doc(db, "checkinPhotos", it.id), {uid: me.uid, photo: it.photo});
+      await Promise.race([b.commit(), new Promise((_, no) => setTimeout(() => no({code: "timeout"}), 25000))]);
+      await qDel(it.id);
+    } catch (e) {
+      let done = false; try { done = (await getDoc(doc(db, "checkins", it.id))).exists(); } catch {}
+      if (done) await qDel(it.id); else { it.status = e.code === "timeout" ? "pendiente" : "error"; await qPut(it); }
+    }
+    paintQueue();
+  } } finally { syncing = false; }
+  paintQueue(); loadMine();
+}
+
+async function paintQueue() {
+  const el = $("#queue"); if (!el || !me) return;
+  const items = (await qAll()).filter(i => i.meta.uid === me.uid).sort((a, b) => a.queuedAt - b.queuedAt);
+  queuedCps = new Set(items.filter(i => i.meta.cpId && dayKey({createdAt: {toDate: () => new Date(i.meta.deviceTime)}}) === today()).map(i => i.meta.cpId));
+  el.innerHTML = items.length ? `<div class="card" style="border-left:4px solid var(--gold)"><div class="row" style="align-items:center"><h3 style="margin:0;flex:2">Pendientes de subir (${items.length})</h3><button class="sm" id="qs">Subir ahora</button></div>
+    <p class="hint">${navigator.onLine ? "Subiendo cuando hay señal." : "Sin conexión: las fotos están guardadas en el celular."} Se envían solas al recuperar internet. Verificaremos la ubicación al subirlas.</p>
+    <div class="grid">${items.map(i => `<div class="rec" style="cursor:default"><img src="${i.thumb}" alt=""><div><b>${esc(i.meta.cpName || i.meta.site)}</b><br>${fmt(new Date(i.meta.deviceTime))}<br>
+    <span class="tag ${i.status === "error" ? "off" : ""}">${i.status === "subiendo" && syncing ? "Subiendo…" : i.status === "error" ? "Error · se reintentará" : "Pendiente"}</span></div></div>`).join("")}</div></div>` : "";
+  if ($("#qs")) $("#qs").onclick = syncQueue;
+  paintCps();
+}
+
 async function capture() {
   if (!pos || !stream) return;
+  const age = Math.round((Date.now() - posT) / 1000);
+  if (age > 600) return $("#merr").textContent = "Sin señal GPS reciente. Sal a un lugar abierto y espera el punto verde.";
   const site = $("#site").value;
   if (!site) return $("#merr").textContent = "Elige la instalación antes de registrar.";
+  const cp = cps.find(c => c.id === $("#cp").value);
+  if (cps.length && !cp) return $("#merr").textContent = "Elige el punto de control donde estás.";
+  const dd = cp ? hav(pos.latitude, pos.longitude, cp.lat, cp.lng) : null;
+  if (cp && dd - pos.accuracy > cp.radius) return $("#merr").textContent = `Estás a ${Math.round(dd)} m del punto. Acércate a menos de ${cp.radius} m para registrar.`;
   $("#snap").disabled = true; $("#merr").textContent = "";
-  const v = $("#cam"), {latitude: lat, longitude: lon, accuracy: acc} = pos;
-  const now = new Date(), address = await reverse(lat, lon), note = $("#note").value.trim();
+  const v = $("#cam"), {latitude: lat, longitude: lon, accuracy: acc} = pos, online = navigator.onLine;
+  const now = new Date(), address = online ? await reverse(lat, lon) : "", note = $("#note").value.trim();
   const w = Math.min(v.videoWidth, 960), h = Math.round(w * v.videoHeight / v.videoWidth);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const x = cv.getContext("2d"); x.drawImage(v, 0, 0, w, h);
   const lines = [`NEPO SECURITY · ${me.name} · ${site}`, now.toLocaleString("es-CL", {dateStyle: "full", timeStyle: "medium"}),
-    `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 95)].filter(Boolean);
+    `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 95), cp && `Punto: ${cp.name} (a ${Math.round(dd)} m)`,
+    age > 30 && `GPS: última ubicación conocida (hace ${age} s)`, !online && "SIN CONEXIÓN · se enviará al recuperar señal"].filter(Boolean);
   const fs = Math.max(13, Math.round(w / 48)), bh = fs * 1.35 * lines.length + 14;
   x.fillStyle = "rgba(18,48,106,.82)"; x.fillRect(0, h - bh, w, bh);
   x.fillStyle = "#B8984A"; x.fillRect(0, h - bh, w, 3);
@@ -196,34 +338,30 @@ async function capture() {
   const tc = document.createElement("canvas"); tc.width = 360; tc.height = Math.round(360 * h / w);
   tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
   const thumb = tc.toDataURL("image/jpeg", .55);
-  const meta = {uid: me.uid, name: me.name, site, lat, lng: lon, acc, address, note, deviceTime: now.toISOString(),
+  const meta = {uid: me.uid, name: me.name, site, cpId: cp?.id ?? null, cpName: cp?.name ?? null, cpDist: cp ? Math.round(dd) : null, cpRadius: cp?.radius ?? null, lat, lng: lon, acc, address, note, deviceTime: now.toISOString(),
+    gpsEstado: age > 30 ? "ultima-conocida" : "en-vivo", gpsEdad: age,
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ua: navigator.userAgent.slice(0, 200), speed: pos.speed ?? null, heading: pos.heading ?? null};
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(photo + JSON.stringify(meta)));
   const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
   try {
-    const ref = doc(collection(db, "checkins")), b = writeBatch(db);
-    const size = photo.length + thumb.length;
-    b.set(ref, {...meta, thumb, hash, size, createdAt: serverTimestamp()});
-    b.set(doc(db, "stats", "usage"), {bytes: increment(size), count: increment(1)}, {merge: true});
-    b.set(doc(db, "checkinPhotos", ref.id), {uid: me.uid, photo});
-    await b.commit();
-    $("#shot").src = photo; $("#shot").classList.remove("hide"); v.classList.add("hide");
-    $("#snap").classList.add("hide"); $("#again").classList.remove("hide");
-    stopMedia(); toast("Registro guardado ✓"); loadMine();
-  } catch { $("#merr").textContent = "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."; $("#snap").disabled = false; }
+    await qPut({id: crypto.randomUUID(), meta, photo, thumb, hash, size: photo.length + thumb.length, status: "pendiente", queuedAt: Date.now()});
+    $("#note").value = ""; toast(online ? "Foto guardada. Subiendo…" : "Foto guardada en el celular. Se subirá al recuperar conexión.");
+    paintQueue(); syncQueue();
+  } catch { $("#merr").textContent = "No se pudo guardar la foto en el celular (¿poco espacio?)."; }
+  $("#snap").disabled = false;
 }
 
 async function loadSites(all) {
-  try { const s = await getDocs(collection(db, "sites"));
-    return s.docs.map(d => ({id: d.id, ...d.data()})).filter(x => all || x.active).sort((a, b) => a.name.localeCompare(b.name)); }
-  catch { return []; }
+  const l = await cached("nepo-sites", async () => (await getDocs(collection(db, "sites"))).docs.map(d => ({id: d.id, ...d.data()})));
+  return l.filter(x => all || x.active).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 async function loadMine() {
   try {
     const s = await getDocs(query(collection(db, "checkins"), where("uid", "==", me.uid), limit(60)));
-    const mine = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (b.createdAt?.seconds || 9e9) - (a.createdAt?.seconds || 9e9)).slice(0, 8);
-    records = mine; $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
+    const allMine = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (b.createdAt?.seconds || 9e9) - (a.createdAt?.seconds || 9e9))
+    doneToday = new Set(allMine.filter(r => r.cpId && dayKey(r) === today()).map(r => r.cpId)); paintCps();
+    const mine = allMine.slice(0, 8); records = mine; $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
     bindRec("#mine");
   } catch {}
 }
@@ -231,7 +369,7 @@ async function loadMine() {
 /* ---------- Registros (admin): carpetas por día ---------- */
 const today = () => new Date().toLocaleDateString("sv");
 const cardRec = r => `<div class="rec" data-i="${records.indexOf(r)}"><img src="${r.thumb || r.photo}" alt="Foto de registro" loading="lazy">
-  <div><b>${esc(r.name)}</b>${r.site ? " · " + esc(r.site) : ""}<br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
+  <div><b>${esc(r.name)}</b>${r.site ? " · " + esc(r.site) : ""}${r.cpName ? "<br>Punto: " + esc(r.cpName) : ""}${r.diferido ? `<br><span class="tag">Envío diferido</span>` : ""}${r.verifOk === false ? `<br><span class="tag off">Revisar: fuera de zona</span>` : ""}<br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
 const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(records[e.dataset.i]));
 
 async function detail(r) {
@@ -241,6 +379,8 @@ async function detail(r) {
   m.innerHTML = `<div class="box"><img src="${photo}" alt="Foto">
    <table><tr><th>Guardia</th><td>${esc(r.name)}</td></tr>
    <tr><th>Instalación</th><td>${esc(r.site) || "—"}</td></tr>
+   <tr><th>Punto de control</th><td>${r.cpName ? `${esc(r.cpName)} · a ${r.cpDist} m (radio ${r.cpRadius} m)` : "—"}</td></tr>
+   <tr><th>Verificación</th><td>${r.verifOk === false ? `Fuera de zona al verificar (a ${r.verifDist} m)` : r.verifOk ? `Dentro de zona (a ${r.verifDist} m)` : "—"}${r.diferido ? " · Envío diferido (capturada sin conexión o con retraso)" : ""}${r.gpsEstado === "ultima-conocida" ? ` · GPS: última ubicación conocida (hace ${r.gpsEdad} s)` : ""}</td></tr>
    <tr><th>Fecha servidor</th><td>${fmt(r.createdAt?.toDate())}</td></tr>
    <tr><th>Hora dispositivo</th><td>${fmt(new Date(r.deviceTime))} (${esc(r.tz)})</td></tr>
    <tr><th>Coordenadas</th><td>${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} · precisión ±${Math.round(r.acc)} m</td></tr>
@@ -260,9 +400,9 @@ const CUOTA_BYTES = 1e9; // cupo gratuito de Firestore (1 GiB), usado con margen
 const dayKey = r => r.createdAt?.toDate().toLocaleDateString("sv") || today();
 const safe = t => String(t || "sin-dato").replace(/[\\/:*?"<>|]+/g, "-").trim();
 const csvOf = rows => {
-  const head = ["Guardia", "Instalacion", "Fecha servidor", "Hora dispositivo", "Latitud", "Longitud", "Precision_m", "Direccion", "Observacion", "Hash"];
+  const head = ["Guardia", "Instalacion", "Punto_control", "Distancia_m", "Verificacion", "Fecha servidor", "Hora dispositivo", "Latitud", "Longitud", "Precision_m", "Direccion", "Observacion", "Hash"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  return "\ufeff" + [head.join(","), ...rows.map(r => [r.name, r.site, fmt(r.createdAt?.toDate()), r.deviceTime, r.lat, r.lng, Math.round(r.acc), r.address, r.note, r.hash].map(q).join(","))].join("\n");
+  return "\ufeff" + [head.join(","), ...rows.map(r => [r.name, r.site, r.cpName, r.cpDist, r.verifOk === false ? "FUERA DE ZONA" : r.diferido ? "Diferido" : "OK", fmt(r.createdAt?.toDate()), r.deviceTime, r.lat, r.lng, Math.round(r.acc), r.address, r.note, r.hash].map(q).join(","))].join("\n");
 };
 const download = (blob, name) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); };
 
@@ -272,7 +412,7 @@ async function usageHtml() {
   const used = Math.min(100, Math.max(0, u.bytes / CUOTA_BYTES * 100)), free = 100 - used, avg = u.count > 0 ? u.bytes / u.count : 150000;
   const left = Math.max(0, Math.floor((CUOTA_BYTES - u.bytes) / avg));
   const col = free > 40 ? "var(--ok)" : free > 15 ? "var(--gold)" : "var(--bad)";
-  const msg = free > 40 ? "✅ Todo en orden. Respalda cuando quieras." : free > 15 ? "⚠️ Conviene respaldar y liberar los días más antiguos." : "🚨 Espacio crítico: respalda y libera espacio hoy.";
+  const msg = free > 40 ? "Todo en orden. Respalda cuando quieras." : free > 15 ? "Atención: conviene respaldar y liberar los días más antiguos." : "Espacio crítico: respalda y libera espacio hoy.";
   return `<div class="card"><b style="color:var(--blue);font-size:1.1rem">Espacio libre: ${free.toFixed(1)}%</b>
     <small> (estimado · ${(u.bytes / 1e6).toFixed(0)} de ${CUOTA_BYTES / 1e6} MB usados · ${u.count} registros · caben ~${left.toLocaleString("es-CL")} más)</small>
     <div class="bar" style="margin:.5rem 0"><i style="width:${used}%;background:${col}"></i></div><div class="hint" style="margin:0">${msg}</div></div>`;
@@ -298,7 +438,7 @@ async function buildZip(rows, name) {
 
 async function viewRecords() {
   $("#v").innerHTML = `<div id="usage"></div>
-    <details class="tip"><summary>💡 <b>Guía rápida del administrador</b></summary><ol>
+    <details class="tip"><summary><b>Guía rápida del administrador</b></summary><ol>
     <li>Elige el rango de fechas y pulsa <b>Buscar</b>. Cada día aparece como una carpeta 📁.</li>
     <li>Filtra por guardia o instalación. Toca una foto para ver su ficha completa, el mapa y la huella de verificación.</li>
     <li><b>Informe PDF</b>: resumen imprimible con los filtros activos.</li>
@@ -310,9 +450,9 @@ async function viewRecords() {
     <div><label>Hasta</label><input type="date" id="fh" value="${today()}"></div>
     <div><label>Guardia</label><select id="fg"></select></div>
     <div><label>Instalación</label><select id="fs"></select></div>
-    <button id="bs">🔍 Buscar</button></div>
+    <button id="bs">Buscar</button></div>
     <div class="row" style="margin-top:.8rem;align-items:center"><label style="display:flex;gap:.4rem;align-items:center;margin:0"><input type="checkbox" id="pf" checked style="width:auto"> Fotos en el PDF</label>
-    <button id="pdf" class="gold">📄 Informe PDF</button><button id="csv" class="alt">📊 CSV</button><button id="zipall" class="alt">⬇ Respaldar lo mostrado</button></div>
+    <button id="pdf" class="gold">Informe PDF</button><button id="csv" class="alt">Exportar CSV</button><button id="zipall" class="alt">⬇ Respaldar lo mostrado</button></div>
     <p class="hint" id="bmsg" style="margin-bottom:0"></p></div>
     <div class="stats" id="stats"></div><div id="list"></div>`;
   const refreshUsage = () => usageHtml().then(h => $("#usage").innerHTML = h); refreshUsage();
@@ -327,7 +467,7 @@ async function viewRecords() {
     $("#list").innerHTML = Object.keys(days).sort().reverse().map((k, i) => `<details class="card" ${i === 0 ? "open" : ""}>
       <summary>📁 <b>${new Date(k + "T12:00:00").toLocaleDateString("es-CL", {weekday: "long", day: "numeric", month: "long", year: "numeric"})}</b> · ${days[k].length} registros</summary>
       <div class="row" style="margin-top:.8rem;align-items:center"><button class="sm gold" data-bk="${k}">⬇ 1. Respaldar este día (ZIP)</button>
-      <button class="sm alt" data-del="${k}" ${backed.has(k) ? "" : "disabled"}>🗑 2. Liberar espacio</button></div>
+      <button class="sm alt" data-del="${k}" ${backed.has(k) ? "" : "disabled"}>2. Liberar espacio</button></div>
       <p class="hint">El respaldo y la liberación incluyen todos los registros de ese día, sin importar los filtros.</p>
       <div class="grid">${days[k].map(cardRec).join("")}</div></details>`).join("") || `<div class="card"><p>No hay registros con esos filtros. Prueba ampliando el rango de fechas.</p></div>`;
     bindRec("#list");
@@ -341,10 +481,11 @@ async function viewRecords() {
         for (let i = 0; i < rows.length; i += 200) { const bt = writeBatch(db);
           rows.slice(i, i + 200).forEach(r => { bt.delete(doc(db, "checkins", r.id)); bt.delete(doc(db, "checkinPhotos", r.id)); }); await bt.commit(); }
         const bytes = rows.reduce((t, r) => t + (r.size || (r.thumb?.length || 0) + (r.photo?.length || 150000)), 0);
-        const ref = doc(db, "stats", "usage"), cur = (await getDoc(ref)).data() || {bytes: 0, count: 0};
-        await setDoc(ref, {bytes: Math.max(0, cur.bytes - bytes), count: Math.max(0, cur.count - rows.length)});
-        all = all.filter(r => dayKey(r) !== k); draw(); refreshUsage(); toast("Espacio liberado ✓");
-      } catch { toast("No se pudo eliminar. Intenta de nuevo."); } });
+        all = all.filter(r => dayKey(r) !== k); draw(); toast("Espacio liberado ✓");
+        try { const ref = doc(db, "stats", "usage"), cur = (await getDoc(ref)).data() || {bytes: 0, count: 0};
+          await setDoc(ref, {bytes: Math.max(0, cur.bytes - bytes), count: Math.max(0, cur.count - rows.length)}); } catch {}
+        refreshUsage();
+      } catch (e) { toast("No se pudo eliminar (" + (e.code || "error") + "). Intenta de nuevo."); } });
   };
   const load = async () => {
     const d = $("#fd").value, h = $("#fh").value;
@@ -389,9 +530,21 @@ async function makePdf(rows, f) {
   head(); let y = 36; P.setTextColor(75, 75, 72); P.setFontSize(9);
   P.text(`Periodo: ${f.d} al ${f.h}   ·   Guardia: ${f.g || "todos"}   ·   Instalación: ${f.s || "todas"}`, M, y); y += 5;
   P.text(`Total: ${rows.length} registros   ·   Generado: ${fmt(new Date())} por ${me.name}`, M, y); y += 6;
+  const cov = [];
+  for (const st of [...new Set(rows.map(r => r.site).filter(Boolean))]) { try {
+    const sn = await getDocs(query(collection(db, "checkpoints"), where("site", "==", st)));
+    sn.docs.map(d => ({id: d.id, ...d.data()})).filter(c => c.active !== false).forEach(c => cov.push({st, name: c.name, n: rows.filter(r => r.cpId === c.id).length})); } catch {} }
+  if (cov.length) {
+    P.setFont("helvetica", "bold"); P.setFontSize(10); P.setTextColor(27, 69, 144); P.text("Cobertura de puntos de control (según los filtros del informe)", M, y); y += 5;
+    P.setFont("helvetica", "normal"); P.setFontSize(8.5);
+    cov.forEach(c => { if (y > 280) { P.addPage(); head(); y = 36; }
+      P.setTextColor(...(c.n ? [46, 125, 79] : [179, 38, 30]));
+      P.text(`${c.n ? "Cumplido" : "SIN REGISTRO"}  ·  ${c.st} · ${c.name}  (${c.n} registro${c.n === 1 ? "" : "s"})`, M, y); y += 4.2; });
+    y += 4; P.setTextColor(75, 75, 72);
+  }
   rows.slice().sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)).forEach(r => {
     const withPh = f.photos && r.thumb, ip = withPh ? P.getImageProperties(r.thumb) : null, ph = ip ? 52 * ip.height / ip.width : 0, tx = withPh ? M + 56 : M;
-    const L = [fmt(r.createdAt?.toDate()) + " (hora del servidor)", `GPS: ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} (±${Math.round(r.acc)} m)`,
+    const L = [...(r.cpName ? [`Punto de control: ${r.cpName} (a ${r.cpDist} m del punto)`] : []), fmt(r.createdAt?.toDate()) + " (hora del servidor)", ...(r.diferido ? [`Envío diferido. Capturada: ${fmt(new Date(r.deviceTime))} (hora del dispositivo)`] : []), ...(r.verifOk === false ? [`REVISAR: fuera de zona al verificar (a ${r.verifDist} m)`] : []), `GPS: ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} (±${Math.round(r.acc)} m)`,
       ...P.splitTextToSize(`Dirección: ${r.address || "—"}`, W - M - tx), ...(r.note ? P.splitTextToSize(`Obs.: ${r.note}`, W - M - tx) : []), `SHA-256: ${r.hash.slice(0, 32)}...`];
     const bh = Math.max(ph + 5, 13 + L.length * 4.2 + 3);
     if (y + bh > 283) { P.addPage(); head(); y = 36; }
@@ -407,6 +560,98 @@ async function makePdf(rows, f) {
   P.save(`informe-nepo-${f.d}_${f.h}.pdf`);
 }
 
+/* ---------- Mapas y puntos de control ---------- */
+const hav = (a, b, c, d) => { const R = 6371000, r = x => x * Math.PI / 180, dp = r(c - a), dl = r(d - b);
+  return 2 * R * Math.asin(Math.sqrt(Math.sin(dp / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dl / 2) ** 2)); };
+const isDone = id => doneToday.has(id) || queuedCps.has(id);
+let userPicked = false, queuedCps = new Set(), cps = [], gm = null, gmP = null, gl = null, doneToday = new Set(), fitMap = true;
+
+async function makeMap(el, c, z = 17) {
+  if (!window.L) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(l);
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"); }
+  const m = L.map(el).setView(c, z);
+  const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Imagery © Esri"});
+  const calle = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"});
+  calle.addTo(m); L.control.layers({"Calle": calle, "Satélite": sat}).addTo(m);
+  return m;
+}
+
+async function viewMaps() {
+  const sites = await loadSites(true);
+  if (!sites.length) { $("#v").innerHTML = `<div class="card"><h2>Mapas y puntos de control</h2><p>Primero crea una instalación en la pestaña Usuarios.</p></div>`; return; }
+  $("#v").innerHTML = `<div class="card"><h2>Mapas y puntos de control</h2>
+    <p class="hint">1) Elige la instalación. 2) Busca la dirección o usa tu ubicación. 3) Toca el mapa donde el guardia debe sacar la foto. 4) Nombra el punto y define el radio de tolerancia. Cambia a vista Satélite con el control del mapa.</p>
+    <div class="row"><div><label>Instalación</label><select id="ms">${sites.map(x => `<option>${esc(x.name)}</option>`).join("")}</select></div>
+    <div><label>Buscar dirección</label><input id="ma" placeholder="Calle, número, comuna"></div>
+    <button id="mg" class="alt">Buscar</button><button id="mh" class="alt">Mi ubicación</button></div></div>
+    <div class="card"><div id="map" style="height:min(60vh,460px);border-radius:10px"></div>
+    <div id="mform" class="row hide" style="margin-top:.8rem;align-items:end"><div><label>Nombre del punto</label><input id="pn" maxlength="60" placeholder="Ej. Portón principal"></div>
+    <div><label>Radio de tolerancia (m)</label><input id="pr" type="number" value="30" min="10" max="500"></div><button id="ps">Guardar punto</button></div>
+    <p class="hint" id="mc"></p></div>
+    <div class="card"><h3>Puntos de esta instalación</h3><div id="pl"></div></div>`;
+  const m = await makeMap($("#map"), [-33.45, -70.66], 12), lg = L.layerGroup().addTo(m);
+  let pend = null, coords = null, fit = true;
+  const draw = async () => {
+    lg.clearLayers(); let pts = [];
+    try { const sn = await getDocs(query(collection(db, "checkpoints"), where("site", "==", $("#ms").value)));
+      pts = sn.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => a.name.localeCompare(b.name)); } catch {}
+    pts.forEach(c => { L.circle([c.lat, c.lng], {radius: c.radius, color: "#B8984A", weight: 2, fillOpacity: .18}).addTo(lg);
+      L.circleMarker([c.lat, c.lng], {radius: 7, color: "#1B4590", fillOpacity: 1}).bindTooltip(c.name, {permanent: true, direction: "top"}).addTo(lg); });
+    if (pts.length && fit) m.fitBounds(pts.map(c => [c.lat, c.lng]), {padding: [40, 40], maxZoom: 19}); fit = false;
+    $("#pl").innerHTML = pts.map(c => `<div class="row" style="align-items:center;border-bottom:1px solid var(--line);padding:.4rem 0"><span><b>${esc(c.name)}</b><br><small>${c.lat.toFixed(6)}, ${c.lng.toFixed(6)} · radio ${c.radius} m</small></span><button class="sm alt" data-id="${c.id}">Quitar</button></div>`).join("") || "<p>Aún no hay puntos. Toca el mapa para agregar el primero.</p>";
+    document.querySelectorAll("#pl [data-id]").forEach(b => b.onclick = async () => {
+      if (!confirm("¿Quitar este punto de control? Los registros ya hechos se mantienen.")) return;
+      try { await deleteDoc(doc(db, "checkpoints", b.dataset.id)); draw(); } catch { toast("No se pudo quitar el punto."); } });
+  };
+  m.on("click", e => { pend?.remove(); coords = e.latlng; pend = L.circleMarker(e.latlng, {radius: 9, color: "#b3261e", fillOpacity: .6}).addTo(m);
+    $("#mform").classList.remove("hide"); $("#mc").textContent = `Punto nuevo en ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`; $("#pn").focus(); });
+  $("#ps").onclick = async () => {
+    const name = $("#pn").value.trim(), radius = Math.min(500, Math.max(10, +$("#pr").value || 30));
+    if (!name || !coords) return toast("Escribe el nombre del punto.");
+    try { await addDoc(collection(db, "checkpoints"), {site: $("#ms").value, name, lat: +coords.lat.toFixed(7), lng: +coords.lng.toFixed(7), radius, active: true, createdAt: serverTimestamp()});
+      pend?.remove(); pend = coords = null; $("#pn").value = ""; $("#mform").classList.add("hide"); $("#mc").textContent = ""; toast("Punto guardado ✓"); draw(); }
+    catch { toast("No se pudo guardar el punto."); } };
+  $("#ms").onchange = () => { fit = true; draw(); };
+  $("#mg").onclick = async () => { const q = $("#ma").value.trim(); if (!q) return;
+    try { const r = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`)).json();
+      if (!r[0]) return toast("No encontré esa dirección."); m.setView([+r[0].lat, +r[0].lon], 19); } catch { toast("No se pudo buscar la dirección."); } };
+  $("#mh").onclick = () => navigator.geolocation.getCurrentPosition(p => m.setView([p.coords.latitude, p.coords.longitude], 19), () => toast("No se pudo obtener tu ubicación."), {enableHighAccuracy: true});
+  draw();
+}
+
+async function loadCps(site) {
+  cps = []; fitMap = true;
+  if (site) cps = (await fetchCps(site)).filter(c => c.active !== false).sort((a, b) => a.name.localeCompare(b.name));
+  $("#cps").classList.toggle("hide", !site); paintCps();
+}
+
+async function paintCps() {
+  const sel = $("#cp"); if (!sel || $("#cps").classList.contains("hide")) return;
+  const cur = sel.value; $("#mapd").style.display = cps.length ? "" : "none";
+  sel.innerHTML = `<option value="">${cps.length ? "Elige el punto de control…" : "Esta instalación no tiene puntos: registro libre"}</option>` +
+    cps.map(c => `<option value="${c.id}">${isDone(c.id) ? "✓ " : ""}${esc(c.name)}${pos ? " · " + Math.round(hav(pos.latitude, pos.longitude, c.lat, c.lng)) + " m" : ""}</option>`).join("");
+  sel.value = cur;
+  if (!userPicked && pos && cps.length) sel.value = cps.map(c => ({c, d: hav(pos.latitude, pos.longitude, c.lat, c.lng)})).sort((a, b) => a.d - b.d)[0].c.id;
+  const c = cps.find(x => x.id === sel.value);
+  let cls = "", msg = "";
+  if (!cps.length) msg = "Esta instalación no tiene puntos: puedes registrar libremente.";
+  else if (!pos) msg = "Buscando tu ubicación…";
+  else if (c) { const d = hav(pos.latitude, pos.longitude, c.lat, c.lng);
+    if (d - pos.accuracy <= c.radius) { cls = "ok"; msg = `<b>${esc(c.name)}</b><br>Listo para registrar ✓`; }
+    else { cls = "bad"; msg = `<b>${esc(c.name)}</b><br>Acércate: estás a ${Math.round(d)} m (máximo ${c.radius} m)`; } }
+  else msg = "Elige el punto de control.";
+  $("#cpd").className = "banner " + cls;
+  $("#cpd").innerHTML = msg + (cps.length ? `<small>Puntos de hoy: ${cps.filter(x => isDone(x.id)).length} de ${cps.length}</small>` : "");
+  if (!cps.length || !$("#mapd").open) return;
+  gmP ||= makeMap($("#gmap"), [cps[0].lat, cps[0].lng], 18).then(m => { gl = L.layerGroup().addTo(m); setTimeout(() => m.invalidateSize(), 80); return m; });
+  gm = await gmP; gl.clearLayers();
+  cps.forEach(x => { const col = isDone(x.id) ? "#2e7d4f" : "#B8984A";
+    L.circle([x.lat, x.lng], {radius: x.radius, color: col, weight: x.id === sel.value ? 4 : 2, fillOpacity: .2}).addTo(gl);
+    L.circleMarker([x.lat, x.lng], {radius: 6, color: col, fillOpacity: 1}).bindTooltip(x.name).addTo(gl); });
+  if (pos) L.circleMarker([pos.latitude, pos.longitude], {radius: 8, color: "#1B4590", fillOpacity: 1}).addTo(gl);
+  if (fitMap) { fitMap = false; const pts = cps.map(x => [x.lat, x.lng]); if (pos) pts.push([pos.latitude, pos.longitude]); gm.fitBounds(pts, {padding: [30, 30], maxZoom: 19}); }
+}
+
 /* ---------- Usuarios (admin) ---------- */
 async function viewUsers() {
   $("#v").innerHTML = `<div class="card"><h2>Nuevo usuario</h2><p class="hint">Crea una cuenta por persona. Los guardias solo registran presencia; los administradores ven todo y respaldan.</p><div class="row">
@@ -415,7 +660,7 @@ async function viewUsers() {
     <div><label>Rol</label><select id="ur"><option value="guard">Guardia</option><option value="admin">Administrador</option></select></div>
     <button id="uc">Crear usuario</button></div><p class="err" id="uerr"></p></div>
     <div class="card"><h2>Usuarios</h2><div style="overflow:auto"><table id="ut"></table></div></div>
-    <div class="card"><h2>Instalaciones</h2><p class="hint">Son los lugares donde trabajan tus guardias (ej. Condominio Los Álamos). Aparecen en el menú del guardia al registrar. ✕ desactiva, ↺ reactiva.</p><div class="row"><div><label>Nombre de la instalación</label><input id="sn" maxlength="80"></div><button id="sc">Agregar instalación</button></div><div id="sl" style="margin-top:.8rem"></div></div>`;
+    <div class="card"><h2>Instalaciones</h2><p class="hint">Son los lugares donde trabajan tus guardias (ej. Condominio Los Álamos). Aparecen en el menú del guardia al registrar. Los puntos de control de cada una se cargan en la pestaña Mapas. ✕ desactiva, ↺ reactiva.</p><div class="row"><div><label>Nombre de la instalación</label><input id="sn" maxlength="80"></div><button id="sc">Agregar instalación</button></div><div id="sl" style="margin-top:.8rem"></div></div>`;
   $("#uc").onclick = async () => {
     const name = $("#un").value.trim(), email = $("#ue").value.trim(), pw = $("#up").value, role = $("#ur").value;
     if (!name || !email || pw.length < 8) return $("#uerr").textContent = "Completa nombre, correo y una contraseña de al menos 8 caracteres.";
@@ -428,8 +673,8 @@ async function viewUsers() {
   };
   const s = await getDocs(collection(db, "users"));
   $("#ut").innerHTML = `<tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr>` + s.docs.map(d => { const u = d.data();
-    return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.role === "admin" ? "Administrador" : "Guardia"}</td>
-    <td><span class="tag ${u.active ? "" : "off"}">${u.active ? "Activo" : "Desactivado"}</span></td>
+    return `<tr><td data-l="Nombre">${esc(u.name)}</td><td data-l="Correo">${esc(u.email)}</td><td data-l="Rol">${u.role === "admin" ? "Administrador" : "Guardia"}</td>
+    <td data-l="Estado"><span class="tag ${u.active ? "" : "off"}">${u.active ? "Activo" : "Desactivado"}</span></td>
     <td>${d.id === me.uid ? "" : `<button class="alt sm" data-id="${d.id}" data-a="${u.active}">${u.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`; }).join("");
   document.querySelectorAll("#ut button").forEach(b => b.onclick = async () => {
     await updateDoc(doc(db, "users", b.dataset.id), {active: b.dataset.a !== "true"}); viewUsers(); });
@@ -441,6 +686,26 @@ async function viewUsers() {
   $("#sc").onclick = async () => { const n = $("#sn").value.trim(); if (!n) return; await addDoc(collection(db, "sites"), {name: n, active: true}); $("#sn").value = ""; drawSites(); };
   drawSites();
 }
+
+window.addEventListener("online", () => { netBadge(); toast("Conexión recuperada. Subiendo pendientes…"); syncQueue(); });
+window.addEventListener("offline", () => { netBadge(); toast("Sin conexión. Las fotos se guardarán en el celular."); paintQueue(); });
+setInterval(() => syncQueue(), 30000);
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+/* ---------- Instalar como app (PWA) ---------- */
+let deferredInstall = null;
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function showInstall() { document.querySelectorAll(".inst").forEach(b => b.classList.toggle("hide", standalone() || !(deferredInstall || isIOS))); }
+async function installApp() {
+  if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; return showInstall(); }
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="box"><h2>Instalar en tu iPhone o iPad</h2><ol style="line-height:1.8"><li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (cuadrado con una flecha hacia arriba).</li><li>Elige <b>Agregar a pantalla de inicio</b>.</li><li>Pulsa <b>Agregar</b>. Listo: tendrás el ícono de NEPO como una app.</li></ol><button id="cl" style="width:100%">Entendido</button></div>`;
+  m.onclick = e => { if (e.target === m || e.target.id === "cl") m.remove(); }; document.body.appendChild(m);
+}
+document.addEventListener("click", e => { if (e.target.closest(".inst")) installApp(); });
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; showInstall(); });
+window.addEventListener("appinstalled", () => { deferredInstall = null; showInstall(); toast("App instalada ✓"); });
 </script>
 </body>
 </html>
