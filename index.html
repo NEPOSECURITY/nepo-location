@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1B4590">
+<title>NEPO Security · Control de presencia</title>
+<link rel="icon" href="logo.jpg">
+<style>
+:root{--blue:#1B4590;--blue-d:#12306a;--gold:#B8984A;--ink:#4B4B48;--bg:#F6F7F3;--line:#dfe0d9;--ok:#2e7d4f;--bad:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--blue);margin:0 0 .5rem}
+header{background:var(--blue);color:#fff;display:flex;align-items:center;gap:.8rem;padding:.6rem 1rem;border-bottom:4px solid var(--gold)}
+header img{height:44px;background:var(--bg);border-radius:6px;padding:2px}
+header b{font-family:Georgia,serif;letter-spacing:.04em}
+header .sp{flex:1}
+header small{opacity:.85}
+main{max-width:1100px;margin:0 auto;padding:1rem}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:1rem}
+button,.btn{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:.7rem 1.1rem;font-size:1rem;font-weight:600;cursor:pointer}
+button:hover{background:var(--blue-d)}button:disabled{opacity:.5;cursor:not-allowed}
+button.alt{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+button.gold{background:var(--gold);color:#222}
+button.sm{padding:.35rem .7rem;font-size:.85rem}
+input,select,textarea{width:100%;padding:.65rem;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid #1b459055}
+label{display:block;font-size:.85rem;margin:.6rem 0 .2rem;font-weight:600}
+.login{max-width:380px;margin:8vh auto}.login img{width:200px;display:block;margin:0 auto 1rem}
+.err{color:var(--bad);font-size:.9rem;min-height:1.2rem}
+.tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+video,.shot{width:100%;max-height:60vh;background:#000;border-radius:10px;object-fit:cover}
+.gps{display:flex;gap:.5rem;align-items:center;font-size:.9rem;margin:.6rem 0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.8rem}
+.rec{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer}
+.rec img{width:100%;height:150px;object-fit:cover;display:block}
+.rec div{padding:.5rem .7rem;font-size:.82rem}.rec b{color:var(--blue)}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:end}.row>*{flex:1;min-width:140px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line)}th{color:var(--blue)}
+.tag{padding:.1rem .5rem;border-radius:99px;font-size:.78rem;background:#e8edf6;color:var(--blue)}.tag.off{background:#f4dede;color:var(--bad)}
+.modal{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;padding:1rem;z-index:9}
+.modal .box{background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:1rem}
+.modal img{width:100%;border-radius:8px}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:.75rem;word-break:break-all}
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.2rem;border-radius:8px;z-index:20}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,orderBy,limit,getDocs,updateDoc,where,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ====== 1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO FIREBASE ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBAjqey7jSRWnDYgGLIKA_U9p_yhsuwkSg",
+  authDomain: "nepo-location.firebaseapp.com",
+  projectId: "nepo-location",
+  storageBucket: "nepo-location.firebasestorage.app",
+  messagingSenderId: "759721708765",
+  appId: "1:759721708765:web:dda2298cc7b062df269f34"
+};
+/* =================================================================== */
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app), db = getFirestore(app);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = d => d ? d.toLocaleString("es-CL", {dateStyle:"short", timeStyle:"medium"}) : "";
+const toast = m => { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); };
+let me = null, stream = null, watchId = null, pos = null, records = [];
+
+/* ---------- Sesión ---------- */
+onAuthStateChanged(auth, async u => {
+  stopMedia();
+  if (!u) { me = null; return viewLogin(); }
+  try {
+    const s = await getDoc(doc(db, "users", u.uid));
+    if (!s.exists() || !s.data().active) { await signOut(auth); return viewLogin("Usuario no autorizado o desactivado."); }
+    me = {uid: u.uid, ...s.data()};
+    shell();
+  } catch (e) { await signOut(auth); viewLogin("No se pudo validar tu perfil."); }
+});
+
+function viewLogin(msg = "") {
+  $("#app").innerHTML = `<div class="card login"><img src="logo.jpg" alt="NEPO Security">
+  <h2>Ingreso</h2>
+  <label>Correo</label><input id="em" type="email" autocomplete="username">
+  <label>Contraseña</label><input id="pw" type="password" autocomplete="current-password">
+  <p class="err" id="err">${esc(msg)}</p><button id="go" style="width:100%">Ingresar</button></div>`;
+  const go = async () => {
+    $("#err").textContent = "";
+    try { await signInWithEmailAndPassword(auth, $("#em").value.trim(), $("#pw").value); }
+    catch { $("#err").textContent = "Correo o contraseña incorrectos."; }
+  };
+  $("#go").onclick = go; $("#pw").onkeydown = e => e.key === "Enter" && go();
+}
+
+function shell() {
+  const admin = me.role === "admin";
+  $("#app").innerHTML = `<header><img src="logo.jpg" alt=""><b>NEPO SECURITY</b><span class="sp"></span>
+    <small>${esc(me.name)} · ${admin ? "Administrador" : "Guardia"}</small><button class="alt sm" id="out">Salir</button></header>
+    <main>${admin ? `<div class="tabs"><button data-t="rec" class="on">Registros</button><button data-t="usr">Usuarios</button><button data-t="mark">Marcar</button></div>` : ""}<div id="v"></div></main>`;
+  $("#out").onclick = () => signOut(auth);
+  const show = t => { stopMedia(); document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+    ({rec: viewRecords, usr: viewUsers, mark: viewMark})[t](); };
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => show(b.dataset.t));
+  show(admin ? "rec" : "mark");
+}
+
+/* ---------- Marcar presencia (guardia) ---------- */
+function stopMedia() {
+  if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+  if (watchId != null) navigator.geolocation.clearWatch(watchId); watchId = null; pos = null;
+}
+
+async function viewMark() {
+  $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2>
+    <video id="cam" autoplay playsinline muted></video><img id="shot" class="shot hide" alt="">
+    <div class="gps"><span class="dot" id="gd"></span><span id="gt">Buscando ubicación GPS…</span></div>
+    <label>Observación (opcional)</label><textarea id="note" rows="2" maxlength="300"></textarea>
+    <p class="err" id="merr"></p>
+    <div class="row"><button id="snap" disabled>Tomar foto y registrar</button><button id="again" class="alt hide">Nuevo registro</button></div></div>
+    <h3>Mis últimos registros</h3><div class="grid" id="mine"></div>`;
+  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment", width: {ideal: 1280}}, audio: false}); $("#cam").srcObject = stream; }
+  catch { $("#merr").textContent = "Debes permitir el acceso a la cámara (requiere conexión HTTPS)."; }
+  if (!navigator.geolocation) { $("#gt").textContent = "Este dispositivo no tiene GPS."; }
+  else watchId = navigator.geolocation.watchPosition(p => {
+    pos = p.coords; const good = pos.accuracy <= 50;
+    $("#gd").className = "dot " + (good ? "ok" : ""); 
+    $("#gt").textContent = `GPS ±${Math.round(pos.accuracy)} m · ${pos.latitude.toFixed(5)}, ${pos.longitude.toFixed(5)}`;
+    $("#snap").disabled = !stream;
+  }, () => { $("#gd").className = "dot bad"; $("#gt").textContent = "Activa el permiso de ubicación para registrar."; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
+  $("#snap").onclick = capture;
+  $("#again").onclick = viewMark;
+  loadMine();
+}
+
+async function reverse(lat, lon) {
+  try {
+    const c = new AbortController(); setTimeout(() => c.abort(), 4000);
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=es`, {signal: c.signal});
+    return (await r.json()).display_name || "";
+  } catch { return ""; }
+}
+
+async function capture() {
+  if (!pos || !stream) return;
+  $("#snap").disabled = true; $("#merr").textContent = "";
+  const v = $("#cam"), {latitude: lat, longitude: lon, accuracy: acc} = pos;
+  const now = new Date(), address = await reverse(lat, lon), note = $("#note").value.trim();
+  const w = Math.min(v.videoWidth, 960), h = Math.round(w * v.videoHeight / v.videoWidth);
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const x = cv.getContext("2d"); x.drawImage(v, 0, 0, w, h);
+  const lines = [`NEPO SECURITY · ${me.name}`, now.toLocaleString("es-CL", {dateStyle: "full", timeStyle: "medium"}),
+    `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 95)].filter(Boolean);
+  const fs = Math.max(13, Math.round(w / 48)), bh = fs * 1.35 * lines.length + 14;
+  x.fillStyle = "rgba(18,48,106,.82)"; x.fillRect(0, h - bh, w, bh);
+  x.fillStyle = "#B8984A"; x.fillRect(0, h - bh, w, 3);
+  x.fillStyle = "#fff"; x.font = `${fs}px system-ui,sans-serif`; x.textBaseline = "top";
+  lines.forEach((l, i) => x.fillText(l, 10, h - bh + 9 + i * fs * 1.35));
+  let q = .7, photo = cv.toDataURL("image/jpeg", q);
+  while (photo.length > 650000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
+  const meta = {uid: me.uid, name: me.name, lat, lng: lon, acc, address, note, deviceTime: now.toISOString(),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ua: navigator.userAgent.slice(0, 200), speed: pos.speed ?? null, heading: pos.heading ?? null};
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(photo + JSON.stringify(meta)));
+  const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  try {
+    await addDoc(collection(db, "checkins"), {...meta, photo, hash, createdAt: serverTimestamp()});
+    $("#shot").src = photo; $("#shot").classList.remove("hide"); v.classList.add("hide");
+    $("#snap").classList.add("hide"); $("#again").classList.remove("hide");
+    stopMedia(); toast("Registro guardado ✓"); loadMine();
+  } catch { $("#merr").textContent = "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."; $("#snap").disabled = false; }
+}
+
+async function loadMine() {
+  try {
+    const s = await getDocs(query(collection(db, "checkins"), where("uid", "==", me.uid), limit(60)));
+    const mine = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (b.createdAt?.seconds || 9e9) - (a.createdAt?.seconds || 9e9)).slice(0, 8);
+    records = mine; $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
+    bindRec("#mine");
+  } catch {}
+}
+
+/* ---------- Registros (admin) ---------- */
+const cardRec = (r, i) => `<div class="rec" data-i="${records.indexOf(r)}"><img src="${r.photo}" alt="Foto de registro" loading="lazy">
+  <div><b>${esc(r.name)}</b><br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
+const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(records[e.dataset.i]));
+
+function detail(r) {
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="box"><img src="${r.photo}" alt="Foto">
+   <table><tr><th>Guardia</th><td>${esc(r.name)}</td></tr>
+   <tr><th>Fecha servidor</th><td>${fmt(r.createdAt?.toDate())}</td></tr>
+   <tr><th>Hora dispositivo</th><td>${fmt(new Date(r.deviceTime))} (${esc(r.tz)})</td></tr>
+   <tr><th>Coordenadas</th><td>${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} · precisión ±${Math.round(r.acc)} m</td></tr>
+   <tr><th>Dirección</th><td>${esc(r.address) || "—"}</td></tr>
+   <tr><th>Observación</th><td>${esc(r.note) || "—"}</td></tr>
+   <tr><th>Dispositivo</th><td class="mono">${esc(r.ua)}</td></tr>
+   <tr><th>Huella SHA-256</th><td class="mono">${esc(r.hash)}</td></tr></table>
+   <div class="row" style="margin-top:.8rem"><a class="btn" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.lat},${r.lng}">Ver en mapa</a><button class="alt" id="cl">Cerrar</button></div></div>`;
+  m.onclick = e => (e.target === m || e.target.id === "cl") && m.remove();
+  document.body.appendChild(m);
+}
+
+async function viewRecords() {
+  $("#v").innerHTML = `<div class="card"><div class="row">
+    <div><label>Guardia</label><select id="fg"><option value="">Todos</option></select></div>
+    <div><label>Desde</label><input type="date" id="fd"></div><div><label>Hasta</label><input type="date" id="fh"></div>
+    <button id="csv" class="gold">Exportar CSV</button></div></div><div class="grid" id="list"><p>Cargando…</p></div>`;
+  try {
+    const s = await getDocs(query(collection(db, "checkins"), orderBy("createdAt", "desc"), limit(80)));
+    const all = s.docs.map(d => ({id: d.id, ...d.data()}));
+    [...new Set(all.map(r => r.name))].forEach(n => $("#fg").insertAdjacentHTML("beforeend", `<option>${esc(n)}</option>`));
+    const draw = () => {
+      const g = $("#fg").value, d = $("#fd").value, h = $("#fh").value;
+      records = all.filter(r => { const t = r.createdAt?.toDate(); if (!t) return true; const iso = t.toLocaleDateString("sv");
+        return (!g || r.name === g) && (!d || iso >= d) && (!h || iso <= h); });
+      $("#list").innerHTML = records.map(cardRec).join("") || "<p>No hay registros con esos filtros.</p>"; bindRec("#list");
+    };
+    ["fg", "fd", "fh"].forEach(i => $("#" + i).onchange = draw); draw();
+    $("#csv").onclick = () => {
+      const head = ["Guardia", "Fecha servidor", "Hora dispositivo", "Latitud", "Longitud", "Precision_m", "Direccion", "Observacion", "Hash"];
+      const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const rows = records.map(r => [r.name, fmt(r.createdAt?.toDate()), r.deviceTime, r.lat, r.lng, Math.round(r.acc), r.address, r.note, r.hash].map(q).join(","));
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + [head.join(","), ...rows].join("\n")], {type: "text/csv"}));
+      a.download = `nepo-registros-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    };
+  } catch { $("#list").innerHTML = `<p class="err">No se pudieron cargar los registros.</p>`; }
+}
+
+/* ---------- Usuarios (admin) ---------- */
+async function viewUsers() {
+  $("#v").innerHTML = `<div class="card"><h2>Nuevo usuario</h2><div class="row">
+    <div><label>Nombre completo</label><input id="un"></div><div><label>Correo</label><input id="ue" type="email"></div>
+    <div><label>Contraseña inicial (mín. 8)</label><input id="up" type="password" autocomplete="new-password"></div>
+    <div><label>Rol</label><select id="ur"><option value="guard">Guardia</option><option value="admin">Administrador</option></select></div>
+    <button id="uc">Crear usuario</button></div><p class="err" id="uerr"></p></div>
+    <div class="card"><h2>Usuarios</h2><div style="overflow:auto"><table id="ut"></table></div></div>`;
+  $("#uc").onclick = async () => {
+    const name = $("#un").value.trim(), email = $("#ue").value.trim(), pw = $("#up").value, role = $("#ur").value;
+    if (!name || !email || pw.length < 8) return $("#uerr").textContent = "Completa nombre, correo y una contraseña de al menos 8 caracteres.";
+    try {
+      const sec = initializeApp(firebaseConfig, "sec" + Date.now()), a2 = getAuth(sec);
+      const c = await createUserWithEmailAndPassword(a2, email, pw);
+      await setDoc(doc(db, "users", c.user.uid), {name, email, role, active: true, createdAt: serverTimestamp()});
+      await signOut(a2); $("#uerr").textContent = ""; toast("Usuario creado ✓"); viewUsers();
+    } catch (e) { $("#uerr").textContent = e.code === "auth/email-already-in-use" ? "Ese correo ya está registrado." : "No se pudo crear el usuario."; }
+  };
+  const s = await getDocs(collection(db, "users"));
+  $("#ut").innerHTML = `<tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr>` + s.docs.map(d => { const u = d.data();
+    return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.role === "admin" ? "Administrador" : "Guardia"}</td>
+    <td><span class="tag ${u.active ? "" : "off"}">${u.active ? "Activo" : "Desactivado"}</span></td>
+    <td>${d.id === me.uid ? "" : `<button class="alt sm" data-id="${d.id}" data-a="${u.active}">${u.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`; }).join("");
+  document.querySelectorAll("#ut button").forEach(b => b.onclick = async () => {
+    await updateDoc(doc(db, "users", b.dataset.id), {active: b.dataset.a !== "true"}); viewUsers(); });
+}
+</script>
+</body>
+</html>
