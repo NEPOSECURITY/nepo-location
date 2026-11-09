@@ -133,6 +133,9 @@ tr:hover td{background:#fafaf7}
 .banner{padding:.8rem 1rem;border-radius:12px;background:#eef2f9;color:var(--blue);font-size:1.05rem;line-height:1.35;margin:.6rem 0;text-align:center}
 .banner small{display:block;opacity:.8;font-size:.78rem;margin-top:.3rem}.banner.ok{background:#e6f4ec;color:#1f6b3f}.banner.bad{background:#fbe9e7;color:var(--bad)}
 #snap{font-size:1.1rem;min-height:56px}
+.chk{display:flex;flex-wrap:wrap;gap:.4rem .9rem}.chk label{display:flex;gap:.4rem;align-items:center;font-weight:400;margin:0;font-size:.9rem}
+.danger{color:var(--bad)!important;border-color:var(--bad)!important}
+@media(max-width:700px){#ut td:last-child{flex-wrap:wrap;justify-content:flex-end;gap:.4rem}}
 </style>
 </head>
 <body>
@@ -220,7 +223,8 @@ function stopMedia() {
 }
 
 async function viewMark() {
-  const sites = await loadSites(); gmP = null; cps = []; userPicked = false;
+  if (navigator.onLine) { try { const p = await getDoc(doc(db, "users", me.uid)); if (p.exists()) { me = {uid: me.uid, ...p.data()}; localStorage.setItem("nepo-me", JSON.stringify(me)); } } catch {} }
+  const sites = (await loadSites()).filter(x => me.role === "admin" || (me.sites || []).includes(x.name)); gmP = null; cps = []; userPicked = false;
   $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2><p class="hint">Apunta al lugar y toca el botón. Si no hay internet, la foto se guarda y se sube sola.</p>
     <video id="cam" autoplay playsinline muted></video><img id="shot" class="shot hide" alt="">
     <div class="gps"><span class="dot" id="gd"></span><span id="gt">Buscando ubicación GPS…</span></div>
@@ -245,6 +249,7 @@ async function viewMark() {
   $("#mapd").ontoggle = () => { fitMap = true; gm?.invalidateSize(); paintCps(); };
   const last = localStorage.getItem("nepo-site"), pick = sites.find(x => x.name === last) ? last : sites.length === 1 ? sites[0].name : "";
   if (pick) { $("#site").value = pick; loadCps(pick); }
+  if (!sites.length) $("#merr").textContent = "No tienes instalaciones asignadas. Pide a tu administrador que te asigne una.";
   $("#again").onclick = viewMark;
   if (navigator.onLine) sites.forEach(x => fetchCps(x.name));
   paintQueue(); loadMine();
@@ -654,34 +659,63 @@ async function paintCps() {
 
 /* ---------- Usuarios (admin) ---------- */
 async function viewUsers() {
+  const act = await loadSites();
   $("#v").innerHTML = `<div class="card"><h2>Nuevo usuario</h2><p class="hint">Crea una cuenta por persona. Los guardias solo registran presencia; los administradores ven todo y respaldan.</p><div class="row">
     <div><label>Nombre completo</label><input id="un"></div><div><label>Correo</label><input id="ue" type="email"></div>
     <div><label>Contraseña inicial (mín. 8)</label><input id="up" type="password" autocomplete="new-password"></div>
     <div><label>Rol</label><select id="ur"><option value="guard">Guardia</option><option value="admin">Administrador</option></select></div>
+    <div style="flex-basis:100%"><label>Instalaciones asignadas (para guardias)</label><div class="chk" id="us">${act.map(x => `<label><input type="checkbox" value="${esc(x.name)}"> ${esc(x.name)}</label>`).join("") || "<small>Primero crea una instalación (más abajo) y luego asígnala.</small>"}</div></div>
     <button id="uc">Crear usuario</button></div><p class="err" id="uerr"></p></div>
     <div class="card"><h2>Usuarios</h2><div style="overflow:auto"><table id="ut"></table></div></div>
     <div class="card"><h2>Instalaciones</h2><p class="hint">Son los lugares donde trabajan tus guardias (ej. Condominio Los Álamos). Aparecen en el menú del guardia al registrar. Los puntos de control de cada una se cargan en la pestaña Mapas. ✕ desactiva, ↺ reactiva.</p><div class="row"><div><label>Nombre de la instalación</label><input id="sn" maxlength="80"></div><button id="sc">Agregar instalación</button></div><div id="sl" style="margin-top:.8rem"></div></div>`;
   $("#uc").onclick = async () => {
     const name = $("#un").value.trim(), email = $("#ue").value.trim(), pw = $("#up").value, role = $("#ur").value;
     if (!name || !email || pw.length < 8) return $("#uerr").textContent = "Completa nombre, correo y una contraseña de al menos 8 caracteres.";
+    const picked = [...document.querySelectorAll("#us input:checked")].map(i => i.value);
+    if (role === "guard" && !picked.length) return $("#uerr").textContent = "Elige al menos una instalación para el guardia.";
     try {
       const sec = initializeApp(firebaseConfig, "sec" + Date.now()), a2 = getAuth(sec);
       const c = await createUserWithEmailAndPassword(a2, email, pw);
-      await setDoc(doc(db, "users", c.user.uid), {name, email, role, active: true, createdAt: serverTimestamp()});
+      await setDoc(doc(db, "users", c.user.uid), {name, email, role, sites: picked, active: true, createdAt: serverTimestamp()});
       await signOut(a2); $("#uerr").textContent = ""; toast("Usuario creado ✓"); viewUsers();
-    } catch (e) { $("#uerr").textContent = e.code === "auth/email-already-in-use" ? "Ese correo ya está registrado." : "No se pudo crear el usuario."; }
+    } catch (e) { $("#uerr").textContent = e.code === "auth/email-already-in-use" ? "Ese correo ya existe en Firebase. Si lo eliminaste antes, bórralo también en Authentication (consola de Firebase) para reutilizarlo." : "No se pudo crear el usuario."; }
   };
   const s = await getDocs(collection(db, "users"));
-  $("#ut").innerHTML = `<tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr>` + s.docs.map(d => { const u = d.data();
+  $("#ut").innerHTML = `<tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Instalaciones</th><th>Estado</th><th></th></tr>` + s.docs.map(d => { const u = d.data();
     return `<tr><td data-l="Nombre">${esc(u.name)}</td><td data-l="Correo">${esc(u.email)}</td><td data-l="Rol">${u.role === "admin" ? "Administrador" : "Guardia"}</td>
+    <td data-l="Instalaciones">${u.role === "admin" ? "Todas" : (esc((u.sites || []).join(", ")) || "<em>Sin asignar</em>")}</td>
     <td data-l="Estado"><span class="tag ${u.active ? "" : "off"}">${u.active ? "Activo" : "Desactivado"}</span></td>
-    <td>${d.id === me.uid ? "" : `<button class="alt sm" data-id="${d.id}" data-a="${u.active}">${u.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`; }).join("");
-  document.querySelectorAll("#ut button").forEach(b => b.onclick = async () => {
+    <td>${d.id === me.uid ? "" : `${u.role === "guard" ? `<button class="alt sm" data-as="${d.id}" data-n="${esc(u.name)}" data-s="${esc(JSON.stringify(u.sites || []))}">Asignar</button> ` : ""}<button class="alt sm" data-id="${d.id}" data-a="${u.active}">${u.active ? "Desactivar" : "Activar"}</button> <button class="alt sm danger" data-rm="${d.id}" data-n="${esc(u.name)}">Eliminar</button>`}</td></tr>`; }).join("");
+  document.querySelectorAll("#ut button[data-id]").forEach(b => b.onclick = async () => {
     await updateDoc(doc(db, "users", b.dataset.id), {active: b.dataset.a !== "true"}); viewUsers(); });
+  document.querySelectorAll("#ut [data-as]").forEach(b => b.onclick = () => {
+    const cur = JSON.parse(b.dataset.s), m = document.createElement("div"); m.className = "modal";
+    m.innerHTML = `<div class="box"><h2>Instalaciones de ${esc(b.dataset.n)}</h2><p class="hint">Marca los lugares donde este guardia puede registrar presencia.</p>
+      <div class="chk" id="as">${act.map(x => `<label><input type="checkbox" value="${esc(x.name)}" ${cur.includes(x.name) ? "checked" : ""}> ${esc(x.name)}</label>`).join("") || "<p>No hay instalaciones activas.</p>"}</div>
+      <div class="row" style="margin-top:1rem"><button id="asv">Guardar</button><button class="alt" id="cl">Cancelar</button></div></div>`;
+    m.onclick = e => { if (e.target === m || e.target.id === "cl") m.remove(); };
+    document.body.appendChild(m);
+    $("#asv").onclick = async () => { try { await updateDoc(doc(db, "users", b.dataset.as), {sites: [...m.querySelectorAll("#as input:checked")].map(i => i.value)});
+      m.remove(); toast("Asignación guardada ✓"); viewUsers(); } catch { toast("No se pudo guardar."); } };
+  });
+  document.querySelectorAll("#ut [data-rm]").forEach(b => b.onclick = async () => {
+    if (!confirm(`¿Eliminar a ${b.dataset.n}?\n\nPierde el acceso de inmediato. Sus registros anteriores se conservan. Si solo quieres suspenderlo, usa «Desactivar».`)) return;
+    try { await deleteDoc(doc(db, "users", b.dataset.rm)); toast("Usuario eliminado ✓"); viewUsers(); } catch { toast("No se pudo eliminar."); } });
   const drawSites = async () => {
     const ss = await loadSites(true);
-    $("#sl").innerHTML = ss.map(x => `<span class="tag ${x.active ? "" : "off"}" style="margin:0 .4rem .4rem 0;display:inline-block">${esc(x.name)} <a href="#" data-id="${x.id}" data-a="${x.active}" title="${x.active ? "Desactivar" : "Activar"}" style="color:inherit;text-decoration:none">${x.active ? "✕" : "↺"}</a></span>`).join("") || "<p>Aún no hay instalaciones. Agrega la primera.</p>";
-    document.querySelectorAll("#sl a").forEach(a => a.onclick = async e => { e.preventDefault(); await updateDoc(doc(db, "sites", a.dataset.id), {active: a.dataset.a !== "true"}); drawSites(); });
+    $("#sl").innerHTML = ss.map(x => `<div class="row" style="align-items:center;border-bottom:1px solid var(--line);padding:.4rem 0"><span><b>${esc(x.name)}</b> <span class="tag ${x.active ? "" : "off"}">${x.active ? "Activa" : "Desactivada"}</span></span>
+      <button class="sm alt" data-t="${x.id}" data-a="${x.active}">${x.active ? "Desactivar" : "Activar"}</button><button class="sm alt danger" data-x="${x.id}" data-n="${esc(x.name)}">Eliminar</button></div>`).join("") || "<p>Aún no hay instalaciones. Agrega la primera.</p>";
+    document.querySelectorAll("#sl [data-t]").forEach(b => b.onclick = async () => { await updateDoc(doc(db, "sites", b.dataset.t), {active: b.dataset.a !== "true"}); drawSites(); });
+    document.querySelectorAll("#sl [data-x]").forEach(b => b.onclick = async () => {
+      const n = b.dataset.n;
+      if (!confirm(`¿Eliminar la instalación «${n}»?\n\nSe borran también sus puntos de control y se quita de los guardias asignados. Los registros ya hechos se conservan.`)) return;
+      try {
+        const bt = writeBatch(db);
+        (await getDocs(query(collection(db, "checkpoints"), where("site", "==", n)))).docs.forEach(d => bt.delete(d.ref));
+        (await getDocs(collection(db, "users"))).docs.forEach(d => { const l = d.data().sites || []; if (l.includes(n)) bt.update(d.ref, {sites: l.filter(x => x !== n)}); });
+        bt.delete(doc(db, "sites", b.dataset.x)); await bt.commit();
+        localStorage.removeItem("nepo-cps-" + n); toast("Instalación eliminada ✓"); viewUsers();
+      } catch { toast("No se pudo eliminar."); } });
   };
   $("#sc").onclick = async () => { const n = $("#sn").value.trim(); if (!n) return; await addDoc(collection(db, "sites"), {name: n, active: true}); $("#sn").value = ""; drawSites(); };
   drawSites();
