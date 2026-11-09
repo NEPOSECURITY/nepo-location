@@ -48,6 +48,7 @@ th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line)}th{color
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:.75rem;word-break:break-all}
 .toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.2rem;border-radius:8px;z-index:20}
 .hide{display:none}
+summary{cursor:pointer;color:var(--blue);font-size:1.05rem}
 </style>
 </head>
 <body>
@@ -56,7 +57,7 @@ th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line)}th{color
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,orderBy,limit,getDocs,updateDoc,where,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,orderBy,limit,getDocs,updateDoc,where,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ====== 1) PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO FIREBASE ====== */
 const firebaseConfig = {
@@ -73,7 +74,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app), db = getFirestore(app);
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const fmt = d => d ? d.toLocaleString("es-CL", {dateStyle:"short", timeStyle:"medium"}) : "";
+const fmt = d => d ? d.toLocaleString("es-CL", {dateStyle:"short", timeStyle:"medium"}).replace(/[\u202f\u00a0]/g, " ") : "";
 const toast = m => { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); };
 let me = null, stream = null, watchId = null, pos = null, records = [];
 
@@ -122,9 +123,11 @@ function stopMedia() {
 }
 
 async function viewMark() {
+  const sites = await loadSites();
   $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2>
     <video id="cam" autoplay playsinline muted></video><img id="shot" class="shot hide" alt="">
     <div class="gps"><span class="dot" id="gd"></span><span id="gt">Buscando ubicación GPS…</span></div>
+    <label>Instalación</label><select id="site"><option value="">Elige la instalación…</option>${sites.map(x => `<option>${esc(x.name)}</option>`).join("")}</select>
     <label>Observación (opcional)</label><textarea id="note" rows="2" maxlength="300"></textarea>
     <p class="err" id="merr"></p>
     <div class="row"><button id="snap" disabled>Tomar foto y registrar</button><button id="again" class="alt hide">Nuevo registro</button></div></div>
@@ -153,13 +156,15 @@ async function reverse(lat, lon) {
 
 async function capture() {
   if (!pos || !stream) return;
+  const site = $("#site").value;
+  if (!site) return $("#merr").textContent = "Elige la instalación antes de registrar.";
   $("#snap").disabled = true; $("#merr").textContent = "";
   const v = $("#cam"), {latitude: lat, longitude: lon, accuracy: acc} = pos;
   const now = new Date(), address = await reverse(lat, lon), note = $("#note").value.trim();
   const w = Math.min(v.videoWidth, 960), h = Math.round(w * v.videoHeight / v.videoWidth);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const x = cv.getContext("2d"); x.drawImage(v, 0, 0, w, h);
-  const lines = [`NEPO SECURITY · ${me.name}`, now.toLocaleString("es-CL", {dateStyle: "full", timeStyle: "medium"}),
+  const lines = [`NEPO SECURITY · ${me.name} · ${site}`, now.toLocaleString("es-CL", {dateStyle: "full", timeStyle: "medium"}),
     `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 95)].filter(Boolean);
   const fs = Math.max(13, Math.round(w / 48)), bh = fs * 1.35 * lines.length + 14;
   x.fillStyle = "rgba(18,48,106,.82)"; x.fillRect(0, h - bh, w, bh);
@@ -167,17 +172,29 @@ async function capture() {
   x.fillStyle = "#fff"; x.font = `${fs}px system-ui,sans-serif`; x.textBaseline = "top";
   lines.forEach((l, i) => x.fillText(l, 10, h - bh + 9 + i * fs * 1.35));
   let q = .7, photo = cv.toDataURL("image/jpeg", q);
-  while (photo.length > 650000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
-  const meta = {uid: me.uid, name: me.name, lat, lng: lon, acc, address, note, deviceTime: now.toISOString(),
+  while (photo.length > 480000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
+  const tc = document.createElement("canvas"); tc.width = 360; tc.height = Math.round(360 * h / w);
+  tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
+  const thumb = tc.toDataURL("image/jpeg", .55);
+  const meta = {uid: me.uid, name: me.name, site, lat, lng: lon, acc, address, note, deviceTime: now.toISOString(),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ua: navigator.userAgent.slice(0, 200), speed: pos.speed ?? null, heading: pos.heading ?? null};
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(photo + JSON.stringify(meta)));
   const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
   try {
-    await addDoc(collection(db, "checkins"), {...meta, photo, hash, createdAt: serverTimestamp()});
+    const ref = doc(collection(db, "checkins")), b = writeBatch(db);
+    b.set(ref, {...meta, thumb, hash, createdAt: serverTimestamp()});
+    b.set(doc(db, "checkinPhotos", ref.id), {uid: me.uid, photo});
+    await b.commit();
     $("#shot").src = photo; $("#shot").classList.remove("hide"); v.classList.add("hide");
     $("#snap").classList.add("hide"); $("#again").classList.remove("hide");
     stopMedia(); toast("Registro guardado ✓"); loadMine();
   } catch { $("#merr").textContent = "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."; $("#snap").disabled = false; }
+}
+
+async function loadSites(all) {
+  try { const s = await getDocs(collection(db, "sites"));
+    return s.docs.map(d => ({id: d.id, ...d.data()})).filter(x => all || x.active).sort((a, b) => a.name.localeCompare(b.name)); }
+  catch { return []; }
 }
 
 async function loadMine() {
@@ -189,15 +206,19 @@ async function loadMine() {
   } catch {}
 }
 
-/* ---------- Registros (admin) ---------- */
-const cardRec = (r, i) => `<div class="rec" data-i="${records.indexOf(r)}"><img src="${r.photo}" alt="Foto de registro" loading="lazy">
-  <div><b>${esc(r.name)}</b><br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
+/* ---------- Registros (admin): carpetas por día ---------- */
+const today = () => new Date().toLocaleDateString("sv");
+const cardRec = r => `<div class="rec" data-i="${records.indexOf(r)}"><img src="${r.thumb || r.photo}" alt="Foto de registro" loading="lazy">
+  <div><b>${esc(r.name)}</b>${r.site ? " · " + esc(r.site) : ""}<br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
 const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(records[e.dataset.i]));
 
-function detail(r) {
+async function detail(r) {
+  let photo = r.photo;
+  if (!photo) { try { photo = (await getDoc(doc(db, "checkinPhotos", r.id))).data().photo; } catch { photo = r.thumb; } }
   const m = document.createElement("div"); m.className = "modal";
-  m.innerHTML = `<div class="box"><img src="${r.photo}" alt="Foto">
+  m.innerHTML = `<div class="box"><img src="${photo}" alt="Foto">
    <table><tr><th>Guardia</th><td>${esc(r.name)}</td></tr>
+   <tr><th>Instalación</th><td>${esc(r.site) || "—"}</td></tr>
    <tr><th>Fecha servidor</th><td>${fmt(r.createdAt?.toDate())}</td></tr>
    <tr><th>Hora dispositivo</th><td>${fmt(new Date(r.deviceTime))} (${esc(r.tz)})</td></tr>
    <tr><th>Coordenadas</th><td>${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} · precisión ±${Math.round(r.acc)} m</td></tr>
@@ -206,34 +227,95 @@ function detail(r) {
    <tr><th>Dispositivo</th><td class="mono">${esc(r.ua)}</td></tr>
    <tr><th>Huella SHA-256</th><td class="mono">${esc(r.hash)}</td></tr></table>
    <div class="row" style="margin-top:.8rem"><a class="btn" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.lat},${r.lng}">Ver en mapa</a><button class="alt" id="cl">Cerrar</button></div></div>`;
-  m.onclick = e => (e.target === m || e.target.id === "cl") && m.remove();
+  m.onclick = e => { if (e.target === m || e.target.id === "cl") m.remove(); };
   document.body.appendChild(m);
 }
 
+const fill = (sel, label, arr) => { const prev = $(sel).value;
+  $(sel).innerHTML = `<option value="">${label}</option>` + [...new Set(arr)].sort().map(n => `<option>${esc(n)}</option>`).join(""); $(sel).value = prev; };
+
 async function viewRecords() {
   $("#v").innerHTML = `<div class="card"><div class="row">
-    <div><label>Guardia</label><select id="fg"><option value="">Todos</option></select></div>
-    <div><label>Desde</label><input type="date" id="fd"></div><div><label>Hasta</label><input type="date" id="fh"></div>
-    <button id="csv" class="gold">Exportar CSV</button></div></div><div class="grid" id="list"><p>Cargando…</p></div>`;
-  try {
-    const s = await getDocs(query(collection(db, "checkins"), orderBy("createdAt", "desc"), limit(80)));
-    const all = s.docs.map(d => ({id: d.id, ...d.data()}));
-    [...new Set(all.map(r => r.name))].forEach(n => $("#fg").insertAdjacentHTML("beforeend", `<option>${esc(n)}</option>`));
-    const draw = () => {
-      const g = $("#fg").value, d = $("#fd").value, h = $("#fh").value;
-      records = all.filter(r => { const t = r.createdAt?.toDate(); if (!t) return true; const iso = t.toLocaleDateString("sv");
-        return (!g || r.name === g) && (!d || iso >= d) && (!h || iso <= h); });
-      $("#list").innerHTML = records.map(cardRec).join("") || "<p>No hay registros con esos filtros.</p>"; bindRec("#list");
-    };
-    ["fg", "fd", "fh"].forEach(i => $("#" + i).onchange = draw); draw();
-    $("#csv").onclick = () => {
-      const head = ["Guardia", "Fecha servidor", "Hora dispositivo", "Latitud", "Longitud", "Precision_m", "Direccion", "Observacion", "Hash"];
-      const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const rows = records.map(r => [r.name, fmt(r.createdAt?.toDate()), r.deviceTime, r.lat, r.lng, Math.round(r.acc), r.address, r.note, r.hash].map(q).join(","));
-      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + [head.join(","), ...rows].join("\n")], {type: "text/csv"}));
-      a.download = `nepo-registros-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    };
-  } catch { $("#list").innerHTML = `<p class="err">No se pudieron cargar los registros.</p>`; }
+    <div><label>Desde</label><input type="date" id="fd" value="${today()}"></div>
+    <div><label>Hasta</label><input type="date" id="fh" value="${today()}"></div>
+    <div><label>Guardia</label><select id="fg"></select></div>
+    <div><label>Instalación</label><select id="fs"></select></div>
+    <button id="bs">Buscar</button></div>
+    <div class="row" style="margin-top:.8rem"><label style="display:flex;gap:.4rem;align-items:center;margin:0"><input type="checkbox" id="pf" checked style="width:auto"> Incluir fotos en el PDF</label>
+    <button id="pdf" class="gold">Informe PDF</button><button id="csv" class="alt">Exportar CSV</button></div></div><div id="list"></div>`;
+  let all = [];
+  const draw = () => {
+    const g = $("#fg").value, st = $("#fs").value, days = {};
+    records = all.filter(r => (!g || r.name === g) && (!st || r.site === st));
+    records.forEach(r => { const k = r.createdAt?.toDate().toLocaleDateString("sv") || today(); (days[k] ||= []).push(r); });
+    $("#list").innerHTML = Object.keys(days).sort().reverse().map((k, i) => `<details class="card" ${i === 0 ? "open" : ""}>
+      <summary>📁 <b>${new Date(k + "T12:00:00").toLocaleDateString("es-CL", {weekday: "long", day: "numeric", month: "long", year: "numeric"})}</b> · ${days[k].length} registros</summary>
+      <div class="grid" style="margin-top:.8rem">${days[k].map(cardRec).join("")}</div></details>`).join("") || "<p>No hay registros con esos filtros.</p>";
+    bindRec("#list");
+  };
+  const load = async () => {
+    const d = $("#fd").value, h = $("#fh").value;
+    if (!d || !h || h < d) return toast("Revisa las fechas.");
+    if ((new Date(h) - new Date(d)) / 864e5 > 31) return toast("El rango máximo es 31 días.");
+    $("#list").innerHTML = "<p>Cargando…</p>";
+    try {
+      const s = await getDocs(query(collection(db, "checkins"), where("createdAt", ">=", new Date(d + "T00:00:00")),
+        where("createdAt", "<=", new Date(h + "T23:59:59.999")), orderBy("createdAt", "desc"), limit(400)));
+      all = s.docs.map(x => ({id: x.id, ...x.data()}));
+      fill("#fg", "Todos los guardias", all.map(r => r.name)); fill("#fs", "Todas las instalaciones", all.map(r => r.site).filter(Boolean));
+      draw(); if (all.length === 400) toast("Se muestran los 400 más recientes. Acota el rango.");
+    } catch { $("#list").innerHTML = `<p class="err">No se pudieron cargar los registros.</p>`; }
+  };
+  $("#bs").onclick = load; $("#fg").onchange = $("#fs").onchange = draw;
+  $("#csv").onclick = () => {
+    const head = ["Guardia", "Instalacion", "Fecha servidor", "Hora dispositivo", "Latitud", "Longitud", "Precision_m", "Direccion", "Observacion", "Hash"];
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = records.map(r => [r.name, r.site, fmt(r.createdAt?.toDate()), r.deviceTime, r.lat, r.lng, Math.round(r.acc), r.address, r.note, r.hash].map(q).join(","));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + [head.join(","), ...rows].join("\n")], {type: "text/csv"}));
+    a.download = `nepo-registros-${$("#fd").value}_${$("#fh").value}.csv`; a.click();
+  };
+  $("#pdf").onclick = async () => {
+    if (!records.length) return toast("No hay registros para el informe.");
+    $("#pdf").disabled = true; toast("Generando PDF…");
+    try { await makePdf(records, {d: $("#fd").value, h: $("#fh").value, g: $("#fg").value, s: $("#fs").value, photos: $("#pf").checked}); }
+    catch (e) { toast("No se pudo generar el PDF."); }
+    $("#pdf").disabled = false;
+  };
+  load();
+}
+
+const loadScript = u => new Promise((ok, no) => { const e = document.createElement("script"); e.src = u; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
+
+async function makePdf(rows, f) {
+  if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const P = new window.jspdf.jsPDF({unit: "mm", format: "a4"}), W = 210, M = 14;
+  const logo = await new Promise(ok => { const i = new Image(); i.onload = () => { const c = document.createElement("canvas"); c.width = i.width; c.height = i.height;
+    c.getContext("2d").drawImage(i, 0, 0); ok({u: c.toDataURL("image/jpeg", .9), r: i.width / i.height}); }; i.onerror = () => ok(null); i.src = "logo.jpg"; });
+  const head = () => {
+    P.setFillColor(27, 69, 144); P.rect(0, 0, W, 26, "F"); P.setFillColor(184, 152, 74); P.rect(0, 26, W, 1.5, "F");
+    if (logo) P.addImage(logo.u, "JPEG", M, 3, 20 * logo.r, 20);
+    P.setTextColor(255); P.setFont("helvetica", "bold"); P.setFontSize(15); P.text("Informe de registros de presencia", W - M, 12, {align: "right"});
+    P.setFont("helvetica", "normal"); P.setFontSize(9); P.text("NEPO Security", W - M, 19, {align: "right"});
+  };
+  head(); let y = 36; P.setTextColor(75, 75, 72); P.setFontSize(9);
+  P.text(`Periodo: ${f.d} al ${f.h}   ·   Guardia: ${f.g || "todos"}   ·   Instalación: ${f.s || "todas"}`, M, y); y += 5;
+  P.text(`Total: ${rows.length} registros   ·   Generado: ${fmt(new Date())} por ${me.name}`, M, y); y += 6;
+  rows.slice().sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)).forEach(r => {
+    const withPh = f.photos && r.thumb, ip = withPh ? P.getImageProperties(r.thumb) : null, ph = ip ? 52 * ip.height / ip.width : 0, tx = withPh ? M + 56 : M;
+    const L = [fmt(r.createdAt?.toDate()) + " (hora del servidor)", `GPS: ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} (±${Math.round(r.acc)} m)`,
+      ...P.splitTextToSize(`Dirección: ${r.address || "—"}`, W - M - tx), ...(r.note ? P.splitTextToSize(`Obs.: ${r.note}`, W - M - tx) : []), `SHA-256: ${r.hash.slice(0, 32)}...`];
+    const bh = Math.max(ph + 5, 13 + L.length * 4.2 + 3);
+    if (y + bh > 283) { P.addPage(); head(); y = 36; }
+    P.setDrawColor(223, 224, 217); P.line(M, y, W - M, y);
+    if (withPh) P.addImage(r.thumb, "JPEG", M, y + 2, 52, ph);
+    P.setFont("helvetica", "bold"); P.setFontSize(10); P.setTextColor(27, 69, 144); P.text(`${r.name} · ${r.site || "Sin instalación"}`, tx, y + 7);
+    P.setFont("helvetica", "normal"); P.setFontSize(8.5); P.setTextColor(75, 75, 72);
+    L.forEach((t, i) => P.text(t, tx, y + 12 + i * 4.2));
+    y += bh;
+  });
+  const n = P.getNumberOfPages();
+  for (let i = 1; i <= n; i++) { P.setPage(i); P.setFontSize(8); P.setTextColor(120); P.text(`Página ${i} de ${n}`, W / 2, 291, {align: "center"}); }
+  P.save(`informe-nepo-${f.d}_${f.h}.pdf`);
 }
 
 /* ---------- Usuarios (admin) ---------- */
@@ -243,7 +325,8 @@ async function viewUsers() {
     <div><label>Contraseña inicial (mín. 8)</label><input id="up" type="password" autocomplete="new-password"></div>
     <div><label>Rol</label><select id="ur"><option value="guard">Guardia</option><option value="admin">Administrador</option></select></div>
     <button id="uc">Crear usuario</button></div><p class="err" id="uerr"></p></div>
-    <div class="card"><h2>Usuarios</h2><div style="overflow:auto"><table id="ut"></table></div></div>`;
+    <div class="card"><h2>Usuarios</h2><div style="overflow:auto"><table id="ut"></table></div></div>
+    <div class="card"><h2>Instalaciones</h2><div class="row"><div><label>Nombre de la instalación</label><input id="sn" maxlength="80"></div><button id="sc">Agregar instalación</button></div><div id="sl" style="margin-top:.8rem"></div></div>`;
   $("#uc").onclick = async () => {
     const name = $("#un").value.trim(), email = $("#ue").value.trim(), pw = $("#up").value, role = $("#ur").value;
     if (!name || !email || pw.length < 8) return $("#uerr").textContent = "Completa nombre, correo y una contraseña de al menos 8 caracteres.";
@@ -261,6 +344,13 @@ async function viewUsers() {
     <td>${d.id === me.uid ? "" : `<button class="alt sm" data-id="${d.id}" data-a="${u.active}">${u.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`; }).join("");
   document.querySelectorAll("#ut button").forEach(b => b.onclick = async () => {
     await updateDoc(doc(db, "users", b.dataset.id), {active: b.dataset.a !== "true"}); viewUsers(); });
+  const drawSites = async () => {
+    const ss = await loadSites(true);
+    $("#sl").innerHTML = ss.map(x => `<span class="tag ${x.active ? "" : "off"}" style="margin:0 .4rem .4rem 0;display:inline-block">${esc(x.name)} <a href="#" data-id="${x.id}" data-a="${x.active}" title="${x.active ? "Desactivar" : "Activar"}" style="color:inherit;text-decoration:none">${x.active ? "✕" : "↺"}</a></span>`).join("") || "<p>Aún no hay instalaciones. Agrega la primera.</p>";
+    document.querySelectorAll("#sl a").forEach(a => a.onclick = async e => { e.preventDefault(); await updateDoc(doc(db, "sites", a.dataset.id), {active: a.dataset.a !== "true"}); drawSites(); });
+  };
+  $("#sc").onclick = async () => { const n = $("#sn").value.trim(); if (!n) return; await addDoc(collection(db, "sites"), {name: n, active: true}); $("#sn").value = ""; drawSites(); };
+  drawSites();
 }
 </script>
 </body>
