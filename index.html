@@ -222,9 +222,18 @@ function shell() {
 }
 
 /* ---------- Marcar presencia (guardia) ---------- */
+const PREC_MAX = 30; let fixes = [];
+function refine(p) {   // promedia las lecturas recientes de mejor precisión (si el guardia camina, usa solo la última)
+  const c = p.coords, t = Date.now(), moving = c.speed != null && c.speed > 0.7;
+  fixes = moving ? [] : fixes.filter(f => t - f.t < 7000);
+  fixes.push({la: c.latitude, lo: c.longitude, ac: Math.max(c.accuracy, 3), t});
+  const best = Math.min(...fixes.map(f => f.ac)); let sw = 0, la = 0, lo = 0;
+  fixes.filter(f => f.ac <= best * 1.6).forEach(f => { const w = 1 / (f.ac * f.ac); sw += w; la += f.la * w; lo += f.lo * w; });
+  return {latitude: la / sw, longitude: lo / sw, accuracy: best, speed: c.speed, heading: c.heading};
+}
 function stopMedia() {
   if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
-  if (watchId != null) navigator.geolocation.clearWatch(watchId); watchId = null; pos = null;
+  if (watchId != null) navigator.geolocation.clearWatch(watchId); watchId = null; pos = null; fixes = [];
 }
 
 async function viewMark() {
@@ -240,14 +249,14 @@ async function viewMark() {
     <p class="err" id="merr"></p>
     <div class="row cta"><button id="snap" disabled>Tomar foto y registrar</button><button id="again" class="alt hide">Nuevo registro</button></div></div>
     <div id="queue"></div><h3>Mis últimos registros</h3><div class="grid" id="mine"></div>`;
-  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment", width: {ideal: 1280}}, audio: false}); $("#cam").srcObject = stream; }
+  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment", width: {ideal: 1920}, height: {ideal: 1080}}, audio: false}); $("#cam").srcObject = stream; }
   catch { $("#merr").textContent = "Debes permitir el acceso a la cámara (requiere conexión HTTPS)."; }
   if (!navigator.geolocation) { $("#gt").textContent = "Este dispositivo no tiene GPS."; }
   else watchId = navigator.geolocation.watchPosition(p => {
-    pos = p.coords; posT = p.timestamp || Date.now(); const good = pos.accuracy <= 50;
+    pos = refine(p); posT = Date.now(); const good = pos.accuracy <= PREC_MAX;
     $("#gd").className = "dot " + (good ? "ok" : ""); 
     $("#gt").textContent = good ? `GPS listo · precisión ±${Math.round(pos.accuracy)} m` : `Mejorando precisión del GPS… (±${Math.round(pos.accuracy)} m)`;
-    $("#snap").disabled = !stream; paintCps();
+    $("#snap").disabled = !stream || !good; paintCps();
   }, () => { $("#gd").className = "dot bad"; $("#gt").textContent = pos ? `Sin señal GPS reciente (última ubicación hace ${Math.round((Date.now() - posT) / 1000)} s)` : "Activa el permiso de ubicación y sal a un lugar abierto."; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
   $("#snap").onclick = capture; $("#site").onchange = e => { localStorage.setItem("nepo-site", e.target.value); userPicked = false; loadCps(e.target.value); };
   $("#cp").onchange = () => { userPicked = true; paintCps(true); };
@@ -291,7 +300,7 @@ async function syncQueue() {
       const m = it.meta, addr = m.address || await reverse(m.lat, m.lng);
       let verifOk = null, verifDist = null;
       if (m.cpId) { try { const c = (await getDoc(doc(db, "checkpoints", m.cpId))).data();
-        if (c) { verifDist = Math.round(hav(m.lat, m.lng, c.lat, c.lng)); verifOk = verifDist - m.acc <= c.radius; } } catch {} }
+        if (c) { verifDist = Math.round(hav(m.lat, m.lng, c.lat, c.lng)); verifOk = verifDist <= c.radius; } } catch {} }
       const b = writeBatch(db);
       b.set(doc(db, "checkins", it.id), {...m, address: addr, thumb: it.thumb, hash: it.hash, size: it.size, diferido: Date.now() - it.queuedAt > 60000, verifOk, verifDist, createdAt: serverTimestamp()});
       b.set(doc(db, "stats", "usage"), {bytes: increment(it.size), count: increment(1)}, {merge: true});
@@ -328,11 +337,12 @@ async function capture() {
   const cp = cps.find(c => c.id === $("#cp").value);
   if (cps.length && !cp) return $("#merr").textContent = "Elige el punto de control donde estás.";
   const dd = cp ? hav(pos.latitude, pos.longitude, cp.lat, cp.lng) : null;
-  if (cp && dd - pos.accuracy > cp.radius) return $("#merr").textContent = `Estás a ${Math.round(dd)} m del punto. Acércate a menos de ${cp.radius} m para registrar.`;
+  if (pos.accuracy > PREC_MAX) return $("#merr").textContent = `Precisión GPS insuficiente (±${Math.round(pos.accuracy)} m). Sal a un lugar abierto y espera unos segundos.`;
+  if (cp && dd > cp.radius) return $("#merr").textContent = `Estás a ${Math.round(dd)} m del punto. Acércate a menos de ${cp.radius} m para registrar.`;
   $("#snap").disabled = true; $("#merr").textContent = "";
   const v = $("#cam"), {latitude: lat, longitude: lon, accuracy: acc} = pos, online = navigator.onLine;
   const now = new Date(), address = online ? await reverse(lat, lon) : "", note = $("#note").value.trim();
-  const w = Math.min(v.videoWidth, 960), h = Math.round(w * v.videoHeight / v.videoWidth);
+  const sc = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight)), w = Math.round(v.videoWidth * sc), h = Math.round(v.videoHeight * sc);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const x = cv.getContext("2d"); x.drawImage(v, 0, 0, w, h);
   const lines = [`NEPO SECURITY · ${me.name} · ${site}`, now.toLocaleString("es-CL", {dateStyle: "medium", timeStyle: "medium"}),
@@ -348,7 +358,7 @@ async function capture() {
   x.fillStyle = "#fff"; x.font = `bold ${fs}px system-ui,sans-serif`; x.textBaseline = "top";
   wl.forEach((l, i) => x.fillText(l, 10, h - bh + 9 + i * fs * 1.35));
   let q = .7, photo = cv.toDataURL("image/jpeg", q);
-  while (photo.length > 480000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
+  while (photo.length > 600000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
   const tc = document.createElement("canvas"); tc.width = 360; tc.height = Math.round(360 * h / w);
   tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
   const thumb = tc.toDataURL("image/jpeg", .55);
@@ -371,20 +381,22 @@ async function loadSites(all) {
 }
 
 async function loadMine() {
+  if (!$("#mine")) return;
   try {
     const s = await getDocs(query(collection(db, "checkins"), where("uid", "==", me.uid), limit(60)));
     const allMine = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (b.createdAt?.seconds || 9e9) - (a.createdAt?.seconds || 9e9))
     doneToday = new Set(allMine.filter(r => r.cpId && dayKey(r) === today()).map(r => r.cpId)); paintCps(true);
-    const mine = allMine.slice(0, 8); records = mine; $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
+    const mine = allMine.slice(0, 8); $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
     bindRec("#mine");
   } catch {}
 }
 
 /* ---------- Registros (admin): carpetas por día ---------- */
 const today = () => new Date().toLocaleDateString("sv");
-const cardRec = r => `<div class="rec" data-i="${records.indexOf(r)}"><img src="${r.thumb || r.photo}" alt="Foto de registro" loading="lazy">
-  <div><b>${esc(r.name)}</b>${r.site ? " · " + esc(r.site) : ""}${r.cpName ? "<br>Punto: " + esc(r.cpName) : ""}${r.diferido ? `<br><span class="tag">Envío diferido</span>` : ""}${r.verifOk === false ? `<br><span class="tag off">Revisar: fuera de zona</span>` : ""}<br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`;
-const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(records[e.dataset.i]));
+const recById = new Map();
+const cardRec = r => (recById.set(r.id, r), `<div class="rec" data-id="${r.id}"><img src="${r.thumb || r.photo}" alt="Foto de registro" loading="lazy">
+  <div><b>${esc(r.name)}</b>${r.site ? " · " + esc(r.site) : ""}${r.cpName ? "<br>Punto: " + esc(r.cpName) : ""}${r.diferido ? `<br><span class="tag">Envío diferido</span>` : ""}${r.verifOk === false ? `<br><span class="tag off">Revisar: fuera de zona</span>` : ""}<br>${fmt(r.createdAt?.toDate())}<br>${esc((r.address || `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`).slice(0, 60))}</div></div>`);
+const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(recById.get(e.dataset.id)));
 
 async function detail(r) {
   document.querySelectorAll(".modal").forEach(x => x.remove());
@@ -613,10 +625,10 @@ async function viewMaps() {
   const sites = await loadSites(true);
   if (!sites.length) { $("#v").innerHTML = `<div class="card"><h2>Mapas y puntos de control</h2><p>Primero crea una instalación en la pestaña Usuarios.</p></div>`; return; }
   $("#v").innerHTML = `<div class="card"><h2>Mapas y puntos de control</h2>
-    <p class="hint">1) Elige la instalación. 2) Busca la dirección o usa tu ubicación. 3) Toca el mapa donde el guardia debe sacar la foto. 4) Nombra el punto y define el radio de tolerancia. Cambia a vista Satélite con el control del mapa.</p>
+    <p class="hint">1) Elige la instalación. 2) Busca la dirección o usa tu ubicación. 3) Toca el mapa donde el guardia debe sacar la foto. 4) Nombra el punto y define el radio de tolerancia. Cambia a vista Satélite con el control del mapa. Para máxima precisión, ve al lugar exacto con tu celular y usa «Medir punto con GPS aquí»: así el punto queda calibrado igual que lo medirán los guardias.</p>
     <div class="row"><div><label>Instalación</label><select id="ms">${sites.map(x => `<option>${esc(x.name)}</option>`).join("")}</select></div>
     <div><label>Buscar dirección</label><input id="ma" placeholder="Calle, número, comuna"></div>
-    <button id="mg" class="alt">Buscar</button><button id="mh" class="alt">Mi ubicación</button></div></div>
+    <button id="mg" class="alt">Buscar</button><button id="mh" class="alt">Mi ubicación</button><button id="mp" class="gold">Medir punto con GPS aquí</button></div></div>
     <div class="card"><div id="map" style="height:min(60vh,460px);border-radius:10px"></div>
     <div id="mform" class="row hide" style="margin-top:.8rem;align-items:end"><div><label>Nombre del punto</label><input id="pn" maxlength="60" placeholder="Ej. Portón principal"></div>
     <div><label>Radio de tolerancia (m)</label><input id="pr" type="number" value="30" min="10" max="500"></div><button id="ps">Guardar punto</button></div>
@@ -649,6 +661,17 @@ async function viewMaps() {
     try { const r = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`)).json();
       if (!r[0]) return toast("No encontré esa dirección."); m.setView([+r[0].lat, +r[0].lon], 19); } catch { toast("No se pudo buscar la dirección."); } };
   $("#mh").onclick = () => navigator.geolocation.getCurrentPosition(p => m.setView([p.coords.latitude, p.coords.longitude], 19), () => toast("No se pudo obtener tu ubicación."), {enableHighAccuracy: true});
+  $("#mp").onclick = () => {
+    if (!navigator.geolocation) return toast("Este dispositivo no tiene GPS.");
+    toast("Midiendo… quédate quieto en el punto 12 segundos"); let best = null;
+    const id = navigator.geolocation.watchPosition(p => { if (!best || p.coords.accuracy < best.accuracy) best = p.coords;
+      $("#mc").textContent = `Midiendo… mejor precisión ±${Math.round(best.accuracy)} m`; }, () => {}, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
+    setTimeout(() => { navigator.geolocation.clearWatch(id);
+      if (!best) return toast("No se pudo medir. Revisa el permiso de ubicación.");
+      pend?.remove(); coords = {lat: best.latitude, lng: best.longitude};
+      pend = L.circleMarker([coords.lat, coords.lng], {radius: 9, color: "#b3261e", fillOpacity: .6}).addTo(m); m.setView([coords.lat, coords.lng], 19);
+      $("#mform").classList.remove("hide"); $("#mc").textContent = `Punto medido con GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)} (±${Math.round(best.accuracy)} m). Ponle nombre y guárdalo.`; $("#pn").focus(); }, 12000);
+  };
   draw();
 }
 
@@ -675,8 +698,9 @@ async function paintCps(force) {
   let cls = "", msg = "";
   if (!cps.length) msg = "Esta instalación no tiene puntos: puedes registrar libremente.";
   else if (!pos) msg = "Buscando tu ubicación…";
+  else if (pos.accuracy > PREC_MAX) msg = `Mejorando la precisión del GPS…<small>Ahora ±${Math.round(pos.accuracy)} m; necesito ±${PREC_MAX} m o menos. Sal a un lugar abierto.</small>`;
   else if (c) { const d = hav(pos.latitude, pos.longitude, c.lat, c.lng);
-    if (d - pos.accuracy <= c.radius) { cls = "ok"; msg = `<b>${esc(c.name)}</b><br>Listo para registrar ✓`; }
+    if (d <= c.radius) { cls = "ok"; msg = `<b>${esc(c.name)}</b><br>Listo para registrar ✓`; }
     else { cls = "bad"; msg = `<b>${esc(c.name)}</b><br>Acércate: estás a ${Math.round(d)} m (máximo ${c.radius} m)`; } }
   else msg = "Elige el punto de control.";
   msg += cps.length ? `<small>Puntos de hoy: ${cps.filter(x => isDone(x.id)).length} de ${cps.length}</small>` : "";
