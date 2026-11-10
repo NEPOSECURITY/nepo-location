@@ -136,6 +136,11 @@ tr:hover td{background:#fafaf7}
 .chk{display:flex;flex-wrap:wrap;gap:.4rem .9rem}.chk label{display:flex;gap:.4rem;align-items:center;font-weight:400;margin:0;font-size:.9rem}
 .danger{color:var(--bad)!important;border-color:var(--bad)!important}
 @media(max-width:700px){#ut td:last-child{flex-wrap:wrap;justify-content:flex-end;gap:.4rem}}
+.leaflet-container{isolation:isolate;z-index:0}
+.modal .box{max-width:900px}
+.pz{overflow:auto;max-height:75vh;border-radius:8px;background:#111;margin-bottom:.4rem}
+.pz img{display:block;width:100%;max-height:none;object-fit:initial;border-radius:0;cursor:zoom-in}
+.pz img.zoomed{width:220%;max-width:none;cursor:zoom-out}
 </style>
 </head>
 <body>
@@ -224,7 +229,7 @@ function stopMedia() {
 
 async function viewMark() {
   if (navigator.onLine) { try { const p = await getDoc(doc(db, "users", me.uid)); if (p.exists()) { me = {uid: me.uid, ...p.data()}; localStorage.setItem("nepo-me", JSON.stringify(me)); } } catch {} }
-  const sites = (await loadSites()).filter(x => me.role === "admin" || (me.sites || []).includes(x.name)); gmP = null; cps = []; userPicked = false;
+  const sites = (await loadSites()).filter(x => me.role === "admin" || (me.sites || []).includes(x.name)); gmP = null; gPosM = null; mapSig = null; cpSig = null; cps = []; userPicked = false;
   $("#v").innerHTML = `<div class="card"><h2>Registrar presencia</h2><p class="hint">Apunta al lugar y toca el botón. Si no hay internet, la foto se guarda y se sube sola.</p>
     <video id="cam" autoplay playsinline muted></video><img id="shot" class="shot hide" alt="">
     <div class="gps"><span class="dot" id="gd"></span><span id="gt">Buscando ubicación GPS…</span></div>
@@ -245,8 +250,8 @@ async function viewMark() {
     $("#snap").disabled = !stream; paintCps();
   }, () => { $("#gd").className = "dot bad"; $("#gt").textContent = pos ? `Sin señal GPS reciente (última ubicación hace ${Math.round((Date.now() - posT) / 1000)} s)` : "Activa el permiso de ubicación y sal a un lugar abierto."; }, {enableHighAccuracy: true, maximumAge: 0, timeout: 20000});
   $("#snap").onclick = capture; $("#site").onchange = e => { localStorage.setItem("nepo-site", e.target.value); userPicked = false; loadCps(e.target.value); };
-  $("#cp").onchange = () => { userPicked = true; paintCps(); };
-  $("#mapd").ontoggle = () => { fitMap = true; gm?.invalidateSize(); paintCps(); };
+  $("#cp").onchange = () => { userPicked = true; paintCps(true); };
+  $("#mapd").ontoggle = () => { fitMap = true; gm?.invalidateSize(); paintCps(true); };
   const last = localStorage.getItem("nepo-site"), pick = sites.find(x => x.name === last) ? last : sites.length === 1 ? sites[0].name : "";
   if (pick) { $("#site").value = pick; loadCps(pick); }
   if (!sites.length) $("#merr").textContent = "No tienes instalaciones asignadas. Pide a tu administrador que te asigne una.";
@@ -311,7 +316,7 @@ async function paintQueue() {
     <div class="grid">${items.map(i => `<div class="rec" style="cursor:default"><img src="${i.thumb}" alt=""><div><b>${esc(i.meta.cpName || i.meta.site)}</b><br>${fmt(new Date(i.meta.deviceTime))}<br>
     <span class="tag ${i.status === "error" ? "off" : ""}">${i.status === "subiendo" && syncing ? "Subiendo…" : i.status === "error" ? "Error · se reintentará" : "Pendiente"}</span></div></div>`).join("")}</div></div>` : "";
   if ($("#qs")) $("#qs").onclick = syncQueue;
-  paintCps();
+  paintCps(true);
 }
 
 async function capture() {
@@ -330,14 +335,18 @@ async function capture() {
   const w = Math.min(v.videoWidth, 960), h = Math.round(w * v.videoHeight / v.videoWidth);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const x = cv.getContext("2d"); x.drawImage(v, 0, 0, w, h);
-  const lines = [`NEPO SECURITY · ${me.name} · ${site}`, now.toLocaleString("es-CL", {dateStyle: "full", timeStyle: "medium"}),
-    `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 95), cp && `Punto: ${cp.name} (a ${Math.round(dd)} m)`,
+  const lines = [`NEPO SECURITY · ${me.name} · ${site}`, now.toLocaleString("es-CL", {dateStyle: "medium", timeStyle: "medium"}),
+    `${lat.toFixed(6)}, ${lon.toFixed(6)} (±${Math.round(acc)} m)`, address.slice(0, 140), cp && `Punto: ${cp.name} (a ${Math.round(dd)} m)`,
     age > 30 && `GPS: última ubicación conocida (hace ${age} s)`, !online && "SIN CONEXIÓN · se enviará al recuperar señal"].filter(Boolean);
-  const fs = Math.max(13, Math.round(w / 48)), bh = fs * 1.35 * lines.length + 14;
-  x.fillStyle = "rgba(18,48,106,.82)"; x.fillRect(0, h - bh, w, bh);
+  const fs = Math.max(15, Math.round(Math.min(w, h * 1.2) / 38));
+  x.font = `${fs}px system-ui,sans-serif`;
+  const wrap = t => { const out = []; let cur = ""; for (const wd of t.split(" ")) { const nx = cur ? cur + " " + wd : wd;
+    if (x.measureText(nx).width > w - 20 && cur) { out.push(cur); cur = wd; } else cur = nx; } out.push(cur); return out; };
+  const wl = lines.flatMap(wrap), bh = fs * 1.35 * wl.length + 14;
+  x.fillStyle = "rgba(18,48,106,.86)"; x.fillRect(0, h - bh, w, bh);
   x.fillStyle = "#B8984A"; x.fillRect(0, h - bh, w, 3);
-  x.fillStyle = "#fff"; x.font = `${fs}px system-ui,sans-serif`; x.textBaseline = "top";
-  lines.forEach((l, i) => x.fillText(l, 10, h - bh + 9 + i * fs * 1.35));
+  x.fillStyle = "#fff"; x.font = `bold ${fs}px system-ui,sans-serif`; x.textBaseline = "top";
+  wl.forEach((l, i) => x.fillText(l, 10, h - bh + 9 + i * fs * 1.35));
   let q = .7, photo = cv.toDataURL("image/jpeg", q);
   while (photo.length > 480000 && q > .3) { q -= .1; photo = cv.toDataURL("image/jpeg", q); }
   const tc = document.createElement("canvas"); tc.width = 360; tc.height = Math.round(360 * h / w);
@@ -365,7 +374,7 @@ async function loadMine() {
   try {
     const s = await getDocs(query(collection(db, "checkins"), where("uid", "==", me.uid), limit(60)));
     const allMine = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => (b.createdAt?.seconds || 9e9) - (a.createdAt?.seconds || 9e9))
-    doneToday = new Set(allMine.filter(r => r.cpId && dayKey(r) === today()).map(r => r.cpId)); paintCps();
+    doneToday = new Set(allMine.filter(r => r.cpId && dayKey(r) === today()).map(r => r.cpId)); paintCps(true);
     const mine = allMine.slice(0, 8); records = mine; $("#mine").innerHTML = mine.map(cardRec).join("") || "<p>Aún no tienes registros.</p>";
     bindRec("#mine");
   } catch {}
@@ -378,10 +387,9 @@ const cardRec = r => `<div class="rec" data-i="${records.indexOf(r)}"><img src="
 const bindRec = sel => document.querySelectorAll(sel + " .rec").forEach(e => e.onclick = () => detail(records[e.dataset.i]));
 
 async function detail(r) {
-  let photo = r.photo;
-  if (!photo) { try { photo = (await getDoc(doc(db, "checkinPhotos", r.id))).data().photo; } catch { photo = r.thumb; } }
+  document.querySelectorAll(".modal").forEach(x => x.remove());
   const m = document.createElement("div"); m.className = "modal";
-  m.innerHTML = `<div class="box"><img src="${photo}" alt="Foto">
+  m.innerHTML = `<div class="box"><div class="pz"><img id="dimg" src="${r.photo || r.thumb}" alt="Foto del registro"></div><p class="hint" id="dst">${r.photo ? "Toca la foto para ampliarla." : "Cargando foto en alta resolución…"}</p>
    <table><tr><th>Guardia</th><td>${esc(r.name)}</td></tr>
    <tr><th>Instalación</th><td>${esc(r.site) || "—"}</td></tr>
    <tr><th>Punto de control</th><td>${r.cpName ? `${esc(r.cpName)} · a ${r.cpDist} m (radio ${r.cpRadius} m)` : "—"}</td></tr>
@@ -393,9 +401,18 @@ async function detail(r) {
    <tr><th>Observación</th><td>${esc(r.note) || "—"}</td></tr>
    <tr><th>Dispositivo</th><td class="mono">${esc(r.ua)}</td></tr>
    <tr><th>Huella SHA-256</th><td class="mono">${esc(r.hash)}</td></tr></table>
-   <div class="row" style="margin-top:.8rem"><a class="btn" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.lat},${r.lng}">Ver en mapa</a><button class="alt" id="cl">Cerrar</button></div></div>`;
+   <div class="row" style="margin-top:.8rem"><a class="btn" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.lat},${r.lng}">Ver en mapa</a>
+   <a class="btn alt" id="dfull" style="display:none;text-decoration:none" target="_blank" rel="noopener">Abrir foto completa</a><a class="btn alt" id="ddl" style="display:none;text-decoration:none">Descargar foto</a>
+   <button class="alt" id="cl">Cerrar</button></div></div>`;
   m.onclick = e => { if (e.target === m || e.target.id === "cl") m.remove(); };
   document.body.appendChild(m);
+  const img = m.querySelector("#dimg"), st = m.querySelector("#dst"); img.onclick = () => img.classList.toggle("zoomed");
+  let photo = r.photo;
+  if (!photo) { try { const d = await Promise.race([getDoc(doc(db, "checkinPhotos", r.id)), new Promise((_, no) => setTimeout(() => no({code: "tiempo agotado"}), 20000))]);
+      photo = d.data()?.photo; } catch (e) { st.textContent = `No se pudo cargar la foto completa (${e.code || "error"}). Se muestra la miniatura.`; } }
+  if (photo && m.isConnected) { img.src = photo; st.textContent = "Toca la foto para ampliarla y desplázate para ver los datos.";
+    try { const url = URL.createObjectURL(await (await fetch(photo)).blob()), f = m.querySelector("#dfull"), dl = m.querySelector("#ddl");
+      f.href = url; dl.href = url; dl.download = `registro-${dayKey(r)}-${safe(r.name)}.jpg`; f.style.display = dl.style.display = ""; } catch {} }
 }
 
 const fill = (sel, label, arr) => { const prev = $(sel).value;
@@ -519,6 +536,8 @@ async function viewRecords() {
   load();
 }
 
+const shrink = (u, q = .6) => new Promise(ok => { const i = new Image(); i.onload = () => { const c = document.createElement("canvas"); c.width = i.width; c.height = i.height;
+  c.getContext("2d").drawImage(i, 0, 0); ok(c.toDataURL("image/jpeg", q)); }; i.onerror = () => ok(u); i.src = u; });
 const loadScript = u => new Promise((ok, no) => { const e = document.createElement("script"); e.src = u; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
 
 async function makePdf(rows, f) {
@@ -547,14 +566,23 @@ async function makePdf(rows, f) {
       P.text(`${c.n ? "Cumplido" : "SIN REGISTRO"}  ·  ${c.st} · ${c.name}  (${c.n} registro${c.n === 1 ? "" : "s"})`, M, y); y += 4.2; });
     y += 4; P.setTextColor(75, 75, 72);
   }
+  const imgs = {};
+  if (f.photos) { const q = rows.slice(); let n = 0;
+    await Promise.all(Array.from({length: 5}, async () => { while (q.length) { const r = q.shift(); let p = r.photo;
+      if (!p) { try { p = (await getDoc(doc(db, "checkinPhotos", r.id))).data().photo; } catch {} }
+      if (p) imgs[r.id] = await shrink(p);
+      $("#bmsg").textContent = `Preparando fotos del informe… ${++n} de ${rows.length}`; } }));
+    $("#bmsg").textContent = ""; }
   rows.slice().sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)).forEach(r => {
-    const withPh = f.photos && r.thumb, ip = withPh ? P.getImageProperties(r.thumb) : null, ph = ip ? 52 * ip.height / ip.width : 0, tx = withPh ? M + 56 : M;
+    const im = f.photos ? (imgs[r.id] || r.thumb) : null, ip = im ? P.getImageProperties(im) : null;
+    let pw = 88, ph = ip ? pw * ip.height / ip.width : 0; if (ph > 105) { ph = 105; pw = ph * ip.width / ip.height; }
+    const withPh = !!im, tx = withPh ? M + pw + 5 : M;
     const L = [...(r.cpName ? [`Punto de control: ${r.cpName} (a ${r.cpDist} m del punto)`] : []), fmt(r.createdAt?.toDate()) + " (hora del servidor)", ...(r.diferido ? [`Envío diferido. Capturada: ${fmt(new Date(r.deviceTime))} (hora del dispositivo)`] : []), ...(r.verifOk === false ? [`REVISAR: fuera de zona al verificar (a ${r.verifDist} m)`] : []), `GPS: ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)} (±${Math.round(r.acc)} m)`,
       ...P.splitTextToSize(`Dirección: ${r.address || "—"}`, W - M - tx), ...(r.note ? P.splitTextToSize(`Obs.: ${r.note}`, W - M - tx) : []), `SHA-256: ${r.hash.slice(0, 32)}...`];
     const bh = Math.max(ph + 5, 13 + L.length * 4.2 + 3);
     if (y + bh > 283) { P.addPage(); head(); y = 36; }
     P.setDrawColor(223, 224, 217); P.line(M, y, W - M, y);
-    if (withPh) P.addImage(r.thumb, "JPEG", M, y + 2, 52, ph);
+    if (withPh) P.addImage(im, "JPEG", M, y + 2, pw, ph);
     P.setFont("helvetica", "bold"); P.setFontSize(10); P.setTextColor(27, 69, 144); P.text(`${r.name} · ${r.site || "Sin instalación"}`, tx, y + 7);
     P.setFont("helvetica", "normal"); P.setFontSize(8.5); P.setTextColor(75, 75, 72);
     L.forEach((t, i) => P.text(t, tx, y + 12 + i * 4.2));
@@ -627,16 +655,22 @@ async function viewMaps() {
 async function loadCps(site) {
   cps = []; fitMap = true;
   if (site) cps = (await fetchCps(site)).filter(c => c.active !== false).sort((a, b) => a.name.localeCompare(b.name));
-  $("#cps").classList.toggle("hide", !site); paintCps();
+  $("#cps").classList.toggle("hide", !site); paintCps(true);
 }
 
-async function paintCps() {
+let lastPaint = 0, cpSig = null, mapSig = null, gPosM = null;
+async function paintCps(force) {
   const sel = $("#cp"); if (!sel || $("#cps").classList.contains("hide")) return;
-  const cur = sel.value; $("#mapd").style.display = cps.length ? "" : "none";
-  sel.innerHTML = `<option value="">${cps.length ? "Elige el punto de control…" : "Esta instalación no tiene puntos: registro libre"}</option>` +
-    cps.map(c => `<option value="${c.id}">${isDone(c.id) ? "✓ " : ""}${esc(c.name)}${pos ? " · " + Math.round(hav(pos.latitude, pos.longitude, c.lat, c.lng)) + " m" : ""}</option>`).join("");
-  sel.value = cur;
-  if (!userPicked && pos && cps.length) sel.value = cps.map(c => ({c, d: hav(pos.latitude, pos.longitude, c.lat, c.lng)})).sort((a, b) => a.d - b.d)[0].c.id;
+  if (!force && Date.now() - lastPaint < 1500) return; lastPaint = Date.now();
+  $("#mapd").style.display = cps.length ? "" : "none";
+  const sig = cps.map(c => c.id + (isDone(c.id) ? 1 : 0)).join("|");
+  if (sig !== cpSig) { const cur = sel.value; cpSig = sig;   // solo se reconstruye el menú si cambian los puntos
+    sel.innerHTML = `<option value="">${cps.length ? "Elige el punto de control…" : "Esta instalación no tiene puntos: registro libre"}</option>` +
+      cps.map(c => `<option value="${c.id}">${isDone(c.id) ? "✓ " : ""}${esc(c.name)}</option>`).join("");
+    sel.value = cur; }
+  if (!userPicked && pos && cps.length && document.activeElement !== sel) {
+    const id = cps.map(c => ({c, d: hav(pos.latitude, pos.longitude, c.lat, c.lng)})).sort((a, b) => a.d - b.d)[0].c.id;
+    if (sel.value !== id) sel.value = id; }
   const c = cps.find(x => x.id === sel.value);
   let cls = "", msg = "";
   if (!cps.length) msg = "Esta instalación no tiene puntos: puedes registrar libremente.";
@@ -645,15 +679,18 @@ async function paintCps() {
     if (d - pos.accuracy <= c.radius) { cls = "ok"; msg = `<b>${esc(c.name)}</b><br>Listo para registrar ✓`; }
     else { cls = "bad"; msg = `<b>${esc(c.name)}</b><br>Acércate: estás a ${Math.round(d)} m (máximo ${c.radius} m)`; } }
   else msg = "Elige el punto de control.";
+  msg += cps.length ? `<small>Puntos de hoy: ${cps.filter(x => isDone(x.id)).length} de ${cps.length}</small>` : "";
+  if ($("#cpd").innerHTML !== msg) $("#cpd").innerHTML = msg;
   $("#cpd").className = "banner " + cls;
-  $("#cpd").innerHTML = msg + (cps.length ? `<small>Puntos de hoy: ${cps.filter(x => isDone(x.id)).length} de ${cps.length}</small>` : "");
   if (!cps.length || !$("#mapd").open) return;
   gmP ||= makeMap($("#gmap"), [cps[0].lat, cps[0].lng], 18).then(m => { gl = L.layerGroup().addTo(m); setTimeout(() => m.invalidateSize(), 80); return m; });
-  gm = await gmP; gl.clearLayers();
-  cps.forEach(x => { const col = isDone(x.id) ? "#2e7d4f" : "#B8984A";
-    L.circle([x.lat, x.lng], {radius: x.radius, color: col, weight: x.id === sel.value ? 4 : 2, fillOpacity: .2}).addTo(gl);
-    L.circleMarker([x.lat, x.lng], {radius: 6, color: col, fillOpacity: 1}).bindTooltip(x.name).addTo(gl); });
-  if (pos) L.circleMarker([pos.latitude, pos.longitude], {radius: 8, color: "#1B4590", fillOpacity: 1}).addTo(gl);
+  gm = await gmP;
+  const ms = sig + "#" + sel.value;
+  if (ms !== mapSig) { mapSig = ms; gl.clearLayers();    // los puntos se redibujan solo si cambian
+    cps.forEach(x => { const col = isDone(x.id) ? "#2e7d4f" : "#B8984A";
+      L.circle([x.lat, x.lng], {radius: x.radius, color: col, weight: x.id === sel.value ? 4 : 2, fillOpacity: .2}).addTo(gl);
+      L.circleMarker([x.lat, x.lng], {radius: 6, color: col, fillOpacity: 1}).bindTooltip(x.name).addTo(gl); }); }
+  if (pos) { const ll = [pos.latitude, pos.longitude]; if (gPosM) gPosM.setLatLng(ll); else gPosM = L.circleMarker(ll, {radius: 8, color: "#1B4590", fillOpacity: 1}).addTo(gm); }
   if (fitMap) { fitMap = false; const pts = cps.map(x => [x.lat, x.lng]); if (pos) pts.push([pos.latitude, pos.longitude]); gm.fitBounds(pts, {padding: [30, 30], maxZoom: 19}); }
 }
 
