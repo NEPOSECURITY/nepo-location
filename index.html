@@ -767,12 +767,28 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 let deferredInstall = null;
 const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-function showInstall() { document.querySelectorAll(".inst").forEach(b => b.classList.toggle("hide", standalone() || !(deferredInstall || isIOS))); }
+function showInstall() { document.querySelectorAll(".inst").forEach(b => b.classList.toggle("hide", !!standalone())); }
 async function installApp() {
   if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; return showInstall(); }
+  const ua = navigator.userAgent, inApp = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp/i.test(ua);
+  const steps = isIOS
+    ? `<li>Abre esta página en <b>Safari</b> (no en Chrome).</li><li>Toca <b>Compartir</b> (cuadrado con flecha hacia arriba).</li><li>Elige <b>Agregar a pantalla de inicio</b> y pulsa <b>Agregar</b>.</li>`
+    : /Android/i.test(ua)
+    ? `<li>Abre esta página en <b>Chrome</b>.</li><li>Toca el menú <b>⋮</b> (arriba a la derecha).</li><li>Elige <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</li>`
+    : `<li>Usa <b>Chrome</b> o <b>Edge</b>.</li><li>Busca el ícono de instalar al final de la barra de direcciones, o el menú <b>⋮</b> → <b>Instalar NEPO</b>.</li>`;
   const m = document.createElement("div"); m.className = "modal";
-  m.innerHTML = `<div class="box"><h2>Instalar en tu iPhone o iPad</h2><ol style="line-height:1.8"><li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (cuadrado con una flecha hacia arriba).</li><li>Elige <b>Agregar a pantalla de inicio</b>.</li><li>Pulsa <b>Agregar</b>. Listo: tendrás el ícono de NEPO como una app.</li></ol><button id="cl" style="width:100%">Entendido</button></div>`;
+  m.innerHTML = `<div class="box"><h2>Instalar NEPO como app</h2>
+    ${inApp ? `<p class="err">Estás dentro de otra app (WhatsApp, Instagram, etc.). Abre el enlace en Chrome o Safari para poder instalar.</p>` : ""}
+    <ol style="line-height:1.8">${steps}</ol>
+    <details style="margin:.6rem 0"><summary>Revisar por qué no se instala solo</summary><div id="dg" class="hint">Revisando…</div></details>
+    <button id="cl" style="width:100%">Entendido</button></div>`;
   m.onclick = e => { if (e.target === m || e.target.id === "cl") m.remove(); }; document.body.appendChild(m);
+  const ok = async u => { try { return (await fetch(u, {cache: "no-store"})).ok; } catch { return false; } };
+  const reg = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration() : null;
+  const rows = [["Conexión segura (HTTPS)", location.protocol === "https:"], ["Archivo manifest.json encontrado", await ok("manifest.json")],
+    ["Ícono icons/icon-192.png encontrado", await ok("icons/icon-192.png")], ["Ícono icons/icon-512.png encontrado", await ok("icons/icon-512.png")],
+    ["Archivo sw.js encontrado", await ok("sw.js")], ["Service worker activo", !!reg], ["Navegador compatible", isIOS || "BeforeInstallPromptEvent" in window]];
+  $("#dg") && ($("#dg").innerHTML = rows.map(([t, v]) => `${v ? "✓" : "✗"} ${t}`).join("<br>") + (rows.some(r => !r[1]) ? "<br><br>Lo que tenga ✗ falta o está mal subido al repositorio." : "<br><br>Todo está correcto: usa el menú del navegador para instalar."));
 }
 document.addEventListener("click", e => { if (e.target.closest(".inst")) installApp(); });
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; showInstall(); });
